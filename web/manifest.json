@@ -1,6 +1,6 @@
 {
-    "name": "estudos",
-    "short_name": "estudos",
+    "name": "routine-pusher",
+    "short_name": "routine-pusher",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

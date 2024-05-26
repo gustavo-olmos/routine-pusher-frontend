@@ -1,4 +1,4 @@
-package com.example.estudos
+package com.example.routine-pusher
 
 import io.flutter.embedding.android.FlutterActivity
 
