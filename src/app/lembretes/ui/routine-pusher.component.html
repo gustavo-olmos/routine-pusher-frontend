@@ -1,0 +1,532 @@
+<div class="rp-backdrop" aria-hidden="true">
+  <span class="rp-blob rp-blob--blue"></span>
+  <span class="rp-blob rp-blob--amber"></span>
+  <span class="rp-blob rp-blob--teal"></span>
+  <span class="rp-blob rp-blob--violet"></span>
+  <span class="rp-grid"></span>
+</div>
+
+<div class="rp-page">
+  <div class="rp-shell">
+
+    <header class="rp-header">
+      <div class="rp-eyebrow">
+        <span class="rp-eyebrow__dot"></span>
+        <span>uma solução RotaFin</span>
+        <a
+          class="rp-eyebrow__link"
+          [href]="SIMULADOR_URL"
+          (click)="irParaSimulador('cabecalho')">simulador de financiamento →</a>
+      </div>
+
+      <div class="rp-titlerow">
+        <svg class="rp-logo" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect x="12.6" y="1.6" width="6.8" height="3.4" rx="1.2" fill="currentColor"></rect>
+          <circle cx="16" cy="19" r="11" class="rp-logo__face" stroke="currentColor" stroke-width="1.8"></circle>
+          <circle cx="16" cy="19" r="7.4" fill="none" class="rp-logo__ring" stroke-width="1"></circle>
+          <rect x="15.2" y="4.6" width="1.6" height="2.6" fill="currentColor"></rect>
+          <rect x="15.2" y="12" width="1.6" height="7.6" rx="0.8" fill="currentColor"></rect>
+          <rect x="16" y="18.2" width="6.4" height="1.6" rx="0.8" class="rp-logo__hand"></rect>
+          <circle cx="16" cy="19" r="1.6" fill="currentColor"></circle>
+        </svg>
+        <h1 class="rp-title">Routine<br />Pusher</h1>
+        <p class="rp-subtitle">
+          Lembretes com recorrências que o <span class="rp-token">cron</span> não expressa.
+        </p>
+      </div>
+
+      <div class="rp-hairline"></div>
+    </header>
+
+    @if (falha(); as f) {
+      <div class="rp-alerta" [class.rp-alerta--limite]="f.limiteAtingido" role="alert">
+        <span class="rp-alerta__marca rp-mono">{{ f.limiteAtingido ? 'limite' : 'erro ' + f.status }}</span>
+        <span class="rp-alerta__texto">{{ mensagemFalha() }}</span>
+        <button type="button" class="rp-alerta__x" (click)="limparFalha()" aria-label="dispensar aviso">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M6 6l12 12M18 6L6 18"></path>
+          </svg>
+        </button>
+      </div>
+    }
+
+    <section class="rp-carousel">
+      <div class="rp-sectionhead">
+        <span class="rp-label">lembretes ativos</span>
+        <span class="rp-counter">{{ position() }}</span>
+      </div>
+
+      @if (carregando()) {
+        <div class="rp-viewport rp-viewport--estado">
+          <div class="rp-esqueleto">
+            <span class="rp-esqueleto__linha rp-esqueleto__linha--titulo"></span>
+            <span class="rp-esqueleto__linha"></span>
+            <span class="rp-esqueleto__linha rp-esqueleto__linha--curta"></span>
+          </div>
+        </div>
+      } @else if (vazio()) {
+        <div class="rp-viewport rp-viewport--estado">
+          <div class="rp-vazio">
+            <p class="rp-vazio__titulo">Nenhum lembrete ainda.</p>
+            <p class="rp-vazio__texto">
+              Descreva um em português ali embaixo — ou comece por um destes:
+            </p>
+            <div class="rp-sugestoes">
+              @for (s of SUGESTOES; track s) {
+                <button type="button" class="rp-sugestao" (click)="usarSugestao(s)">{{ s }}</button>
+              }
+            </div>
+            <button type="button" class="rp-reset rp-vazio__form" (click)="abrirFormulario()">
+              ou monte um pelo formulário
+            </button>
+          </div>
+        </div>
+      } @else {
+        <div class="rp-carousel__row">
+          <div class="rp-viewport">
+            <div class="rp-track" [style.transform]="trackShift()">
+              @for (card of cards(); track card.id) {
+                <button
+                  type="button"
+                  class="rp-card"
+                  [class.rp-card--feito]="card.concluido"
+                  (click)="abrirDetalhe(card.id)">
+                  <div class="rp-card__head">
+                    <span class="rp-card__label">{{ card.label }}</span>
+                    <span class="rp-card__meta">
+                      <span
+                        class="rp-badge"
+                        [class.rp-badge--none]="card.noCron"
+                        [class.rp-badge--solid]="!card.noCron">
+                        {{ card.cron }}
+                      </span>
+                      <span class="rp-mono rp-muted">{{ card.resumo }}</span>
+                    </span>
+                  </div>
+
+                  <div class="rp-card__foot">
+                    <div class="rp-timeline">
+                      <span class="rp-timeline__axis"></span>
+                      <span class="rp-timeline__cap rp-timeline__cap--start"></span>
+                      <span class="rp-timeline__cap rp-timeline__cap--end"></span>
+                      @for (t of card.ticks; track t.label) {
+                        <span class="rp-tick" [class.rp-tick--active]="t.active" [style.left]="t.left">
+                          <span class="rp-tick__dot"></span>
+                          <span class="rp-tick__stem"></span>
+                          <span class="rp-tick__label">{{ t.label }}</span>
+                        </span>
+                      }
+                    </div>
+
+                    <div class="rp-next">
+                      <span class="rp-mono rp-muted">próxima</span>
+                      <span class="rp-mono rp-next__value">{{ card.nextLine }}</span>
+                      <span class="rp-mono rp-muted-2">{{ card.spanNote }}</span>
+                    </div>
+
+                    <div class="rp-cta">
+                      ver as próximas {{ occurrenceCount() }} execuções
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                        <path d="M5 12h13M13 6.5l5.5 5.5L13 17.5"></path>
+                      </svg>
+                    </div>
+                  </div>
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="rp-rail">
+            <button type="button" class="rp-rail__btn" (click)="step(-1)" aria-label="lembrete anterior">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 14l6-6 6 6"></path>
+              </svg>
+            </button>
+            <div class="rp-dots">
+              @for (card of cards(); track card.id) {
+                <button
+                  type="button"
+                  class="rp-dot"
+                  [class.rp-dot--active]="card.id === selectedId()"
+                  (click)="select(card.id)"
+                  [attr.aria-label]="'ir para ' + card.label"></button>
+              }
+            </div>
+            <button type="button" class="rp-rail__btn" (click)="step(1)" aria-label="próximo lembrete">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 10l6 6 6-6"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      }
+    </section>
+
+    @if (!vazio() && !carregando()) {
+      <section class="rp-examples">
+        <div class="rp-sectionhead">
+          <span class="rp-label">seus lembretes</span>
+          <button
+            type="button"
+            class="rp-reset"
+            [disabled]="noLimite()"
+            (click)="abrirFormulario()">+ pelo formulário</button>
+        </div>
+        <ul class="rp-list">
+          @for (card of cards(); track card.id) {
+            <li>
+              <button
+                type="button"
+                class="rp-row"
+                [class.rp-row--active]="card.id === selectedId()"
+                (click)="select(card.id)">
+                <span class="rp-row__left">
+                  <span class="rp-row__dot" [style.background]="card.cor"></span>
+                  <span class="rp-row__label" [class.rp-row__label--feito]="card.concluido">
+                    {{ card.label }}
+                  </span>
+                </span>
+                <span
+                  class="rp-badge rp-badge--square"
+                  [class.rp-badge--none]="card.noCron"
+                  [class.rp-badge--solid]="!card.noCron && card.id === selectedId()"
+                  [class.rp-badge--quiet]="!card.noCron && card.id !== selectedId()">
+                  {{ card.cron }}
+                </span>
+              </button>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (convite(); as c) {
+      <section class="rp-convite">
+        <div class="rp-convite__texto">
+          <span class="rp-label">já que o assunto é dinheiro</span>
+          <p class="rp-convite__frase">
+            Anotar <strong>{{ c.titulo }}</strong> resolve a data. Ver quanto essa
+            parcela custa no total é outra conversa — o simulador faz a conta.
+          </p>
+        </div>
+        <div class="rp-convite__acoes">
+          <a
+            class="rp-primary rp-convite__cta"
+            [href]="SIMULADOR_URL"
+            (click)="irParaSimulador('convite_contextual')">simular financiamento</a>
+          <button type="button" class="rp-convite__x" (click)="dispensarConvite()">agora não</button>
+        </div>
+      </section>
+    }
+
+    <section class="rp-composer">
+      <div class="rp-composer__box">
+        <textarea
+          rows="3"
+          class="rp-composer__input"
+          [value]="draft()"
+          [attr.maxlength]="MAX_FRASE"
+          [disabled]="noLimite()"
+          (input)="draft.set($any($event.target).value)"
+          (keydown)="onKeydown($event)"
+          placeholder="descreva um lembrete em português…&#10;ex.: me lembra de regar as plantas 4 dias depois da última rega"></textarea>
+        <div class="rp-composer__actions">
+          <span class="rp-mono rp-muted-2 rp-composer__contador">
+            {{ noLimite() ? 'limite de ' + LIMITE_LEMBRETES + ' atingido' : restantes() + ' de ' + LIMITE_LEMBRETES + ' restantes' }}
+          </span>
+          <button
+            type="button"
+            class="rp-send"
+            [class.rp-send--ready]="!!draft().trim() && !noLimite()"
+            [class.rp-send--enviando]="enviando()"
+            [disabled]="enviando() || noLimite()"
+            (click)="enviarFrase()"
+            aria-label="enviar lembrete">
+            @if (enviando()) {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="rp-girando">
+                <path d="M12 3a9 9 0 1 0 9 9"></path>
+              </svg>
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h13"></path>
+                <path d="M12 6l6 6-6 6"></path>
+              </svg>
+            }
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="rp-footer">
+      <a href="https://github.com/routine-pusher" target="_blank" rel="noreferrer" class="rp-footer__link">
+        <span class="rp-mono">github.com/routine-pusher</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M7 17L17 7M9 7h8v8"></path>
+        </svg>
+      </a>
+      <a
+        class="rp-footer__link rp-footer__link--quiet"
+        [href]="SIMULADOR_URL"
+        (click)="irParaSimulador('rodape')">Ver também: Finance Simulator →</a>
+    </footer>
+
+  </div>
+</div>
+
+<!-- avisos do SSE: cada evento do stream é o título do lembrete que disparou -->
+@if (avisos().length) {
+  <div class="rp-avisos" role="status" aria-live="polite">
+    @for (aviso of avisos(); track aviso.id) {
+      <button type="button" class="rp-aviso" (click)="dispensarAviso(aviso)">
+        <span class="rp-aviso__pulso"></span>
+        <span class="rp-aviso__corpo">
+          <span class="rp-label">lembrete disparado</span>
+          <span class="rp-aviso__titulo">{{ aviso.titulo }}</span>
+        </span>
+      </button>
+    }
+  </div>
+}
+
+@if (open() && selected(); as alvo) {
+  <div class="rp-overlay" [class.rp-overlay--sheet]="isMobile()" (click)="fecharDetalhe()">
+    <div
+      class="rp-panel"
+      [class.rp-panel--sheet]="isMobile()"
+      role="dialog"
+      aria-modal="true"
+      (click)="$event.stopPropagation()">
+      <div class="rp-panel__head">
+        <div class="rp-panel__title">
+          <span class="rp-label">próximas {{ occurrenceCount() }} execuções</span>
+          <span class="rp-panel__name">{{ alvo.titulo }}</span>
+          <span class="rp-mono rp-muted rp-panel__sub">
+            {{ alvo.categoria.nome }} · {{ detalheResumo() }}
+          </span>
+        </div>
+        <button type="button" class="rp-close" (click)="fecharDetalhe()" aria-label="fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M6 6l12 12M18 6L6 18"></path>
+          </svg>
+        </button>
+      </div>
+
+      <ol class="rp-occurrences">
+        @for (occ of execucoes(); track occ.n; let i = $index) {
+          <li
+            class="rp-occurrence"
+            [class.rp-occurrence--first]="occ.first"
+            [style.animation-name]="animation()"
+            [style.animation-delay.ms]="i * 55">
+            <span class="rp-occurrence__left rp-mono">
+              <span class="rp-occurrence__n">{{ occ.n }}</span>
+              <span class="rp-occurrence__date">{{ occ.date }}</span>
+              <span class="rp-occurrence__weekday">{{ occ.weekday }}</span>
+            </span>
+            <span class="rp-gap rp-mono" [class.rp-gap--first]="occ.first">{{ occ.gap }}</span>
+          </li>
+        } @empty {
+          <li class="rp-occurrence rp-occurrence--vazia">
+            <span class="rp-mono rp-muted">o servidor não previu execuções para esta regra</span>
+          </li>
+        }
+      </ol>
+
+      <div class="rp-panel__actions">
+        <button
+          type="button"
+          class="rp-primary"
+          [disabled]="alvo.status === 'CONCLUIDO'"
+          (click)="concluir()">
+          {{ alvo.status === 'CONCLUIDO' ? 'já concluído' : 'concluí esta' }}
+        </button>
+        <button type="button" class="rp-secondary rp-mono" (click)="excluir()">excluir</button>
+      </div>
+
+      <p class="rp-panel__note rp-mono">
+        as datas vêm do servidor em <span class="rp-token">proximasExecucoes</span> — concluir
+        reprojeta a série.
+      </p>
+    </div>
+  </div>
+}
+
+@if (formAberto()) {
+  <div class="rp-overlay" [class.rp-overlay--sheet]="isMobile()" (click)="fecharFormulario()">
+    <div
+      class="rp-panel rp-panel--form"
+      [class.rp-panel--sheet]="isMobile()"
+      role="dialog"
+      aria-modal="true"
+      aria-label="novo lembrete pelo formulário"
+      (click)="$event.stopPropagation()">
+      <div class="rp-panel__head">
+        <div class="rp-panel__title">
+          <span class="rp-label">novo lembrete</span>
+          <span class="rp-panel__name">pelo formulário</span>
+        </div>
+        <button type="button" class="rp-close" (click)="fecharFormulario()" aria-label="fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M6 6l12 12M18 6L6 18"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="rp-form">
+        <label class="rp-campo">
+          <span class="rp-label">título</span>
+          <input
+            type="text"
+            class="rp-input"
+            [class.rp-input--erro]="!!erroDe()['titulo']"
+            [value]="fTitulo()"
+            [attr.maxlength]="MAX_TITULO"
+            (input)="fTitulo.set($any($event.target).value)"
+            placeholder="Pagar a fatura do cartão" />
+          @if (erroDe()['titulo']; as e) { <span class="rp-campo__erro rp-mono">{{ e }}</span> }
+        </label>
+
+        <label class="rp-campo">
+          <span class="rp-label">descrição <span class="rp-muted-2">(opcional)</span></span>
+          <input
+            type="text"
+            class="rp-input"
+            [value]="fDescricao()"
+            [attr.maxlength]="MAX_DESCRICAO"
+            (input)="fDescricao.set($any($event.target).value)" />
+        </label>
+
+        <label class="rp-campo">
+          <span class="rp-label">categoria</span>
+          <select
+            class="rp-input"
+            [class.rp-input--erro]="!!erroDe()['categoriaId']"
+            [value]="fCategoria()"
+            (change)="fCategoria.set(+$any($event.target).value)">
+            @for (c of categorias(); track c.id) {
+              <option [value]="c.id">{{ c.nome }}</option>
+            }
+          </select>
+          @if (erroDe()['categoriaId']; as e) { <span class="rp-campo__erro rp-mono">{{ e }}</span> }
+        </label>
+
+        <div class="rp-campo">
+          <span class="rp-label">como se repete</span>
+          <div class="rp-segmento">
+            @for (op of [['semana','dias da semana'],['mes','dias do mês'],['intervalo','a cada']]; track op[0]) {
+              <button
+                type="button"
+                class="rp-segmento__op"
+                [class.rp-segmento__op--ativo]="fEstrategia() === op[0]"
+                (click)="fEstrategia.set($any(op[0]))">{{ op[1] }}</button>
+            }
+          </div>
+        </div>
+
+        @switch (fEstrategia()) {
+          @case ('intervalo') {
+            <div class="rp-campo rp-campo--linha">
+              <input
+                type="number"
+                min="1"
+                class="rp-input rp-input--curto"
+                [value]="fPasso()"
+                (input)="fPasso.set($any($event.target).value)" />
+              <select class="rp-input" [value]="fUnidade()" (change)="fUnidade.set($any($event.target).value)">
+                <option value="minutos">minutos</option>
+                <option value="horas">horas</option>
+                <option value="dias">dias</option>
+              </select>
+            </div>
+            <p class="rp-form__nota rp-mono">
+              o primeiro disparo sai daqui a {{ fPasso() }} {{ fUnidade() }} — quem soma o
+              intervalo é o servidor.
+            </p>
+          }
+          @case ('semana') {
+            <div class="rp-campo">
+              <span class="rp-label">dias</span>
+              <div class="rp-chips">
+                @for (d of DIAS_SEMANA; track d.valor) {
+                  <button
+                    type="button"
+                    class="rp-chip"
+                    [class.rp-chip--ativo]="fDiasSemana().includes(d.valor)"
+                    (click)="alternarDia(d.valor)">{{ d.curto }}</button>
+                }
+              </div>
+            </div>
+            <label class="rp-campo">
+              <span class="rp-label">posição no mês <span class="rp-muted-2">(opcional)</span></span>
+              <select
+                class="rp-input"
+                [value]="fPosicaoMes()"
+                (change)="fPosicaoMes.set($any($event.target).value ? +$any($event.target).value : null)">
+                <option [value]="null">toda semana</option>
+                <option [value]="1">1ª do mês</option>
+                <option [value]="2">2ª do mês</option>
+                <option [value]="3">3ª do mês</option>
+                <option [value]="4">4ª do mês</option>
+                <option [value]="5">5ª do mês</option>
+              </select>
+            </label>
+          }
+          @case ('mes') {
+            <label class="rp-campo">
+              <span class="rp-label">dias do mês</span>
+              <input
+                type="text"
+                class="rp-input"
+                [value]="fDiasMes()"
+                (input)="fDiasMes.set($any($event.target).value)"
+                placeholder="10, 25" />
+            </label>
+          }
+        }
+
+        @if (fEstrategia() !== 'intervalo') {
+          <div class="rp-campo rp-campo--linha">
+            <label class="rp-campo rp-campo--flex">
+              <span class="rp-label">horário</span>
+              <input
+                type="time"
+                class="rp-input"
+                [value]="fHorario()"
+                (input)="fHorario.set($any($event.target).value)" />
+            </label>
+            <label class="rp-campo rp-campo--flex">
+              <span class="rp-label">se cair em feriado</span>
+              <select class="rp-input" [value]="fPolitica()" (change)="fPolitica.set($any($event.target).value)">
+                <option value="IGNORAR">ignorar</option>
+                <option value="PULAR">pular</option>
+                <option value="ADIAR">adiar</option>
+                <option value="ANTECIPAR">antecipar</option>
+              </select>
+            </label>
+          </div>
+        }
+
+        <label class="rp-campo">
+          <span class="rp-label">repetir quantas vezes <span class="rp-muted-2">(vazio = sem fim)</span></span>
+          <input
+            type="number"
+            min="1"
+            class="rp-input rp-input--curto"
+            [value]="fQuantidade()"
+            (input)="fQuantidade.set($any($event.target).value)" />
+        </label>
+
+        @if (falha(); as f) {
+          <p class="rp-form__erro rp-mono">{{ mensagemFalha() }}</p>
+        }
+      </div>
+
+      <div class="rp-panel__actions">
+        <button type="button" class="rp-primary" [disabled]="enviando()" (click)="salvarFormulario()">
+          {{ enviando() ? 'criando…' : 'criar lembrete' }}
+        </button>
+        <button type="button" class="rp-secondary rp-mono" (click)="fecharFormulario()">cancelar</button>
+      </div>
+    </div>
+  </div>
+}
