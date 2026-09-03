@@ -1,8 +1,10 @@
 <div class="rp-backdrop" aria-hidden="true">
-  <span class="rp-blob rp-blob--blue"></span>
-  <span class="rp-blob rp-blob--amber"></span>
-  <span class="rp-blob rp-blob--teal"></span>
-  <span class="rp-blob rp-blob--violet"></span>
+  <span class="rp-blobs">
+    <span class="rp-blob rp-blob--blue"></span>
+    <span class="rp-blob rp-blob--amber"></span>
+    <span class="rp-blob rp-blob--teal"></span>
+    <span class="rp-blob rp-blob--violet"></span>
+  </span>
   <span class="rp-grid"></span>
 </div>
 
@@ -69,16 +71,8 @@
           <div class="rp-vazio">
             <p class="rp-vazio__titulo">Nenhum lembrete ainda.</p>
             <p class="rp-vazio__texto">
-              Descreva um em português ali embaixo — ou comece por um destes:
+              Descreva um em português ali embaixo — ou toque num dos exemplos.
             </p>
-            <div class="rp-sugestoes">
-              @for (s of SUGESTOES; track s) {
-                <button type="button" class="rp-sugestao" (click)="usarSugestao(s)">{{ s }}</button>
-              }
-            </div>
-            <button type="button" class="rp-reset rp-vazio__form" (click)="abrirFormulario()">
-              ou monte um pelo formulário
-            </button>
           </div>
         </div>
       } @else {
@@ -162,10 +156,10 @@
       }
     </section>
 
-    @if (!vazio() && !carregando()) {
+    @if (!carregando()) {
       <section class="rp-examples">
         <div class="rp-sectionhead">
-          <span class="rp-label">seus lembretes</span>
+          <span class="rp-label">{{ vazio() ? 'exemplos' : 'seus lembretes' }}</span>
           <button
             type="button"
             class="rp-reset"
@@ -173,28 +167,44 @@
             (click)="abrirFormulario()">+ pelo formulário</button>
         </div>
         <ul class="rp-list">
-          @for (card of cards(); track card.id) {
-            <li>
-              <button
-                type="button"
-                class="rp-row"
-                [class.rp-row--active]="card.id === selectedId()"
-                (click)="select(card.id)">
-                <span class="rp-row__left">
-                  <span class="rp-row__dot" [style.background]="card.cor"></span>
-                  <span class="rp-row__label" [class.rp-row__label--feito]="card.concluido">
-                    {{ card.label }}
+          @if (vazio()) {
+            <!-- Sem dados, a lista vira o que era no design: exemplos. Clicar
+                 preenche a frase, que é o primeiro degrau do funil. -->
+            @for (s of SUGESTOES; track s) {
+              <li>
+                <button type="button" class="rp-row" (click)="usarSugestao(s)">
+                  <span class="rp-row__left">
+                    <span class="rp-row__dot"></span>
+                    <span class="rp-row__label">{{ s }}</span>
                   </span>
-                </span>
-                <span
-                  class="rp-badge rp-badge--square"
-                  [class.rp-badge--none]="card.noCron"
-                  [class.rp-badge--solid]="!card.noCron && card.id === selectedId()"
-                  [class.rp-badge--quiet]="!card.noCron && card.id !== selectedId()">
-                  {{ card.cron }}
-                </span>
-              </button>
-            </li>
+                  <span class="rp-badge rp-badge--square rp-badge--quiet">usar</span>
+                </button>
+              </li>
+            }
+          } @else {
+            @for (card of cards(); track card.id) {
+              <li>
+                <button
+                  type="button"
+                  class="rp-row"
+                  [class.rp-row--active]="card.id === selectedId()"
+                  (click)="select(card.id)">
+                  <span class="rp-row__left">
+                    <span class="rp-row__dot" [style.background]="card.cor"></span>
+                    <span class="rp-row__label" [class.rp-row__label--feito]="card.concluido">
+                      {{ card.label }}
+                    </span>
+                  </span>
+                  <span
+                    class="rp-badge rp-badge--square"
+                    [class.rp-badge--none]="card.noCron"
+                    [class.rp-badge--solid]="!card.noCron && card.id === selectedId()"
+                    [class.rp-badge--quiet]="!card.noCron && card.id !== selectedId()">
+                    {{ card.cron }}
+                  </span>
+                </button>
+              </li>
+            }
           }
         </ul>
       </section>

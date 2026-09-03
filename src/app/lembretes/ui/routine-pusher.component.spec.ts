@@ -178,12 +178,26 @@ describe('RoutinePusherComponent', () => {
     tick();
   }));
 
-  it('mostra sugestões financeiras quando não há lembrete', fakeAsync(() => {
+  it('sem lembretes, a lista vira exemplos financeiros e continua na tela', fakeAsync(() => {
     abrir([]);
 
-    const sugestoes = el.querySelectorAll('.rp-sugestao');
-    expect(sugestoes.length).toBeGreaterThan(0);
+    // A seção da lista existe sempre: some ela e a tela perde o ritmo do design.
+    const secao = el.querySelector('.rp-examples');
+    expect(secao).withContext('seção de exemplos').toBeTruthy();
+    expect(secao?.querySelector('.rp-label')?.textContent?.trim()).toBe('exemplos');
+    expect(secao!.querySelectorAll('.rp-row').length).toBeGreaterThan(0);
     expect(el.textContent).toContain('Nenhum lembrete ainda');
+  }));
+
+  it('clicar num exemplo preenche a frase sem criar nada', fakeAsync(() => {
+    abrir([]);
+
+    (el.querySelector('.rp-examples .rp-row') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const campo = el.querySelector('.rp-composer__input') as HTMLTextAreaElement;
+    expect(campo.value.length).toBeGreaterThan(0);
+    // Nenhuma chamada disparada: o afterEach do http.verify() reprovaria.
   }));
 
   it('desenha um card por lembrete, com as datas que o servidor previu', fakeAsync(() => {

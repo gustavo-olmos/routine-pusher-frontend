@@ -999,13 +999,13 @@
 
 /* ---- carga e vazio ------------------------------------------------------- */
 
+/* Herda o padding/margin negativos de .rp-viewport de propósito: eles se anulam,
+   deixando a caixa alinhada com a borda da seção enquanto a sombra ainda pode
+   vazar. Zerar a margem aqui empurrava o estado vazio 16px para dentro. */
 .rp-viewport--estado {
   display: flex;
   align-items: center;
   height: auto;
-  min-height: 340px;
-  padding: 26px 16px;
-  margin: 0;
 }
 
 .rp-esqueleto {
@@ -1054,32 +1054,6 @@
     font-size: 13.5px;
     line-height: 1.5;
     color: var(--text-3);
-  }
-}
-
-.rp-sugestoes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.rp-sugestao {
-  padding: 9px 13px;
-  border: 1px solid var(--glass-border-soft);
-  border-radius: 999px;
-  background: var(--glass-fill-quiet);
-  color: var(--text-2);
-  font-family: inherit;
-  font-size: 12.5px;
-  text-align: left;
-  cursor: pointer;
-  transition: transform 0.15s, color 0.15s, border-color 0.15s;
-
-  &:hover {
-    transform: translateY(-1px);
-    border-color: var(--accent);
-    color: var(--text);
   }
 }
 
@@ -1409,7 +1383,18 @@
   }
 }
 
-.rp-vazio__form {
-  align-self: flex-start;
-  margin-top: 2px;
+/* Os blobs foram compostos para uma janela de ~1460px, mas são posicionados em
+   % de um .rp-backdrop preso ao viewport. Num monitor largo, `left: 44%` joga o
+   âmbar para longe do título e os demais fogem para os cantos, deixando o meio
+   cinza. Ancorando o conjunto numa faixa centrada da largura de referência, a
+   composição acompanha a coluna de conteúdo em qualquer tela — e em janelas
+   menores que 1460px nada muda. */
+.rp-blobs {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 100%;
+  max-width: 1460px;
+  transform: translateX(-50%);
 }
