@@ -41,6 +41,7 @@ import {
   SIMULADOR_URL,
   SUGESTOES,
 } from '../lembretes.config';
+import { Tema, lerTema, oposto, salvarTema } from './tema';
 
 interface Marca {
   left: string;
@@ -87,14 +88,14 @@ const dois = (n: number) => String(n).padStart(2, '0');
   styleUrl: './routine-pusher.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [NotificacoesService],
-  host: { '[class.rp-dark]': 'theme() === "dark"' },
+  host: { '[class.rp-dark]': 'temaAtivo() === "dark"' },
 })
 export class RoutinePusherComponent implements OnInit {
   private readonly store = inject(LembretesStore);
   private readonly funil = inject(FunilService);
   private readonly notificacoes = inject(NotificacoesService);
 
-  readonly theme = input<'light' | 'dark'>('light');
+  readonly theme = input<Tema>('light');
   /** Teto de execuções exibidas; o servidor manda cinco. */
   readonly occurrenceCount = input(5);
 
@@ -116,6 +117,16 @@ export class RoutinePusherComponent implements OnInit {
   protected readonly noLimite = this.store.noLimite;
   protected readonly restantes = this.store.restantes;
   protected readonly avisos = this.notificacoes.avisos;
+
+  /**
+   * Escolha explícita do visitante, ou `null` enquanto ele não tocar no botão.
+   * Fica separada do input `theme` para não brigar com ele: o anfitrião continua
+   * mandando no padrão, e o clique manda no resto da visita.
+   */
+  private readonly temaEscolhido = signal<Tema | null>(lerTema());
+
+  protected readonly temaAtivo = computed<Tema>(() => this.temaEscolhido() ?? this.theme());
+  protected readonly escuro = computed(() => this.temaAtivo() === 'dark');
 
   protected readonly selectedId = signal<string | null>(null);
   protected readonly draft = signal('');
@@ -281,10 +292,23 @@ export class RoutinePusherComponent implements OnInit {
 
   // ---- ações sobre um lembrete --------------------------------------------
 
-  protected async concluir(): Promise<void> {
+  /**
+   * O ✓ é aceite das datas, não conclusão do lembrete: o visitante está dizendo
+   * "sim, era isso que eu queria". Não chama a API — só fecha. Vale como métrica
+   * porque é o sinal mais direto de que a leitura da frase pela IA acertou.
+   */
+  protected confirmarDatas(): void {
     const alvo = this.selected();
-    if (!alvo) return;
-    await this.store.concluir(alvo.uuid);
+    this.funil.registrar('datas_confirmadas', {
+      titulo: alvo?.titulo,
+      execucoes: alvo?.proximasExecucoes?.length ?? 0,
+    });
+    this.open.set(false);
+  }
+
+  /** Concluir mora na lista, não no detalhe: o painel é para inspecionar datas. */
+  protected async concluirLembrete(id: string): Promise<void> {
+    await this.store.concluir(id);
     this.tick.update(t => t + 1);
   }
 
@@ -387,6 +411,14 @@ export class RoutinePusherComponent implements OnInit {
   protected irParaSimulador(origem: OrigemSaida): void {
     const atual = this.convite();
     this.funil.registrarSaida(origem, atual ? { motivo: atual.motivo } : {});
+  }
+
+  /** Lua no claro, sol no escuro: o botão mostra para onde vai, não onde está. */
+  protected alternarTema(): void {
+    const proximo = oposto(this.temaAtivo());
+    this.temaEscolhido.set(proximo);
+    salvarTema(proximo);
+    this.funil.registrar('tema_alternado', { para: proximo });
   }
 
   protected dispensarConvite(): void {

@@ -21,6 +21,10 @@
   --solid: #16161a;
   --solid-fg: #fbfaf8;
   --idle: rgba(22, 22, 26, 0.25);
+  --ok: oklch(0.55 0.15 150);
+  --ok-soft: oklch(0.55 0.15 150 / 0.14);
+  --danger: oklch(0.55 0.19 25);
+  --danger-soft: oklch(0.55 0.19 25 / 0.14);
   --blob-opacity: 0.9;
 
   display: block;
@@ -50,6 +54,10 @@
   --solid: #f2f1ec;
   --solid-fg: #131419;
   --idle: rgba(255, 255, 255, 0.3);
+  --ok: oklch(0.76 0.16 150);
+  --ok-soft: oklch(0.76 0.16 150 / 0.18);
+  --danger: oklch(0.7 0.18 25);
+  --danger-soft: oklch(0.7 0.18 25 / 0.18);
 }
 
 * { box-sizing: border-box; }
@@ -157,7 +165,6 @@
 }
 
 .rp-eyebrow {
-  align-self: flex-start;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -907,7 +914,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rp-blob, .rp-track, .rp-occurrence, .rp-panel, .rp-overlay { animation: none; transition: none; }
+  .rp-blob, .rp-track, .rp-occurrence, .rp-panel, .rp-overlay,
+  /* peças acrescentadas depois: mesma regra, mesma intenção */
+  .rp-tema svg, .rp-aviso, .rp-aviso__pulso, .rp-convite, .rp-esqueleto__linha, .rp-girando {
+    animation: none;
+    transition: none;
+  }
 }
 
 /* ========================================================================== */
@@ -1397,4 +1409,148 @@
   width: 100%;
   max-width: 1460px;
   transform: translateX(-50%);
+}
+
+/* ---- alternador de tema -------------------------------------------------- */
+
+/* O eyebrow era `align-self: flex-start` solto no header; agora divide a linha
+   com o botão de tema. A pílula em si não mudou. */
+.rp-toprow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rp-tema {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--glass-fill);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: transform 0.15s, color 0.15s, background 0.15s;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    animation: rpTemaIn 0.22s ease both;
+  }
+
+  &:hover { color: var(--text); }
+  &:active { transform: scale(0.92); }
+}
+
+@keyframes rpTemaIn {
+  from { opacity: 0; transform: rotate(-35deg) scale(0.7); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---- ações do detalhe ---------------------------------------------------- */
+
+/* Só o painel de detalhe: o do formulário segue com os botões largos de texto. */
+.rp-panel:not(.rp-panel--form) .rp-panel__actions {
+  justify-content: flex-end;
+}
+
+.rp-acao {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--idle);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: transform 0.15s, color 0.15s, border-color 0.15s, background 0.15s;
+
+  svg { width: 19px; height: 19px; }
+
+  &:hover { transform: translateY(-1px); }
+  &:active { transform: scale(0.93); }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    &:hover { transform: none; }
+  }
+
+  /* Em repouso os dois são neutros; a cor só aparece na intenção. */
+  &--confirmar:hover:not(:disabled) {
+    border-color: var(--ok);
+    background: var(--ok-soft);
+    color: var(--ok);
+  }
+
+  &--excluir:hover {
+    border-color: var(--danger);
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+}
+
+/* ---- concluir pela lista ------------------------------------------------- */
+
+/* A .rp-row deixou de ser <button> para poder abrigar o ✓. A moldura, o padding
+   e os estados continuam os mesmos; só o miolo virou um botão sem estilo. */
+li.rp-row { cursor: default; }
+
+.rp-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rp-row__ok {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--idle);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-4);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.15s;
+
+  svg { width: 13px; height: 13px; }
+
+  &:hover:not(:disabled) {
+    border-color: var(--ok);
+    background: var(--ok-soft);
+    color: var(--ok);
+  }
+
+  &:active:not(:disabled) { transform: scale(0.9); }
+
+  /* Continua na tela depois de concluído para os selos não dançarem de linha
+     em linha — e o verde apagado já diz que está feito. */
+  &--feito {
+    border-color: var(--ok);
+    color: var(--ok);
+    opacity: 0.55;
+    cursor: default;
+  }
 }

@@ -13,6 +13,8 @@ export type EventoFunil =
   | 'lembrete_criado_form'
   | 'lembrete_concluido'
   | 'lembrete_excluido'
+  | 'datas_confirmadas'
+  | 'tema_alternado'
   | 'convite_simulador_visto'
   | 'convite_simulador_dispensado'
   | 'saida_simulador';

@@ -103,7 +103,16 @@ describe('RoutinePusherComponent', () => {
   let http: HttpTestingController;
   let el: HTMLElement;
 
+  /** O componente lê o tema salvo ao ser construído, então a limpeza precisa vir
+   *  antes do createComponent. Karma sorteia a ordem dos testes: sem isto, o que
+   *  grava 'dark' contamina o seguinte de forma intermitente. */
+  function limparTema(): void {
+    try { localStorage.removeItem('rp:tema'); } catch { /* aba anônima */ }
+  }
+
   beforeEach(async () => {
+    limparTema();
+
     await TestBed.configureTestingModule({
       imports: [RoutinePusherComponent],
       providers: [
@@ -126,7 +135,10 @@ describe('RoutinePusherComponent', () => {
     el = fixture.nativeElement;
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    limparTema();
+  });
 
   /** Sobe a tela até a lista carregada. */
   function abrir(lembretes: Lembrete[]): void {
@@ -263,6 +275,72 @@ describe('RoutinePusherComponent', () => {
     expect(el.querySelector('.rp-convite')).withContext('convite contextual').toBeTruthy();
   }));
 
+  describe('alternador de tema', () => {
+    it('abre no claro mostrando a lua, e no escuro mostra o sol', fakeAsync(() => {
+      abrir([AGUA]);
+
+      const host = fixture.nativeElement as HTMLElement;
+      const botao = el.querySelector('.rp-tema') as HTMLButtonElement;
+
+      expect(host.classList.contains('rp-dark')).withContext('começa claro').toBeFalse();
+      expect(botao.getAttribute('aria-label')).toBe('usar tema escuro');
+      // A lua é um path só; o sol tem o círculo.
+      expect(botao.querySelector('circle')).withContext('lua no claro').toBeNull();
+
+      botao.click();
+      fixture.detectChanges();
+
+      expect(host.classList.contains('rp-dark')).withContext('vira escuro').toBeTrue();
+      expect(botao.getAttribute('aria-label')).toBe('usar tema claro');
+      expect(botao.querySelector('circle')).withContext('sol no escuro').toBeTruthy();
+
+      botao.click();
+      fixture.detectChanges();
+      expect(host.classList.contains('rp-dark')).withContext('volta ao claro').toBeFalse();
+    }));
+
+    it('abre no escuro quando o visitante já escolheu isso antes', fakeAsync(() => {
+      // Seed antes de criar o componente: ele lê o tema salvo na construção.
+      localStorage.setItem('rp:tema', 'dark');
+      fixture = TestBed.createComponent(RoutinePusherComponent);
+      el = fixture.nativeElement;
+      abrir([AGUA]);
+
+      expect((fixture.nativeElement as HTMLElement).classList.contains('rp-dark')).toBeTrue();
+      expect(el.querySelector('.rp-tema')?.querySelector('circle'))
+        .withContext('sol, porque já está escuro')
+        .toBeTruthy();
+    }));
+
+    it('ignora lixo salvo e cai no padrão', fakeAsync(() => {
+      localStorage.setItem('rp:tema', 'roxo');
+      fixture = TestBed.createComponent(RoutinePusherComponent);
+      el = fixture.nativeElement;
+      abrir([AGUA]);
+
+      expect((fixture.nativeElement as HTMLElement).classList.contains('rp-dark')).toBeFalse();
+    }));
+
+    it('guarda a escolha para a próxima visita', fakeAsync(() => {
+      abrir([AGUA]);
+      (el.querySelector('.rp-tema') as HTMLButtonElement).click();
+      expect(localStorage.getItem('rp:tema')).toBe('dark');
+    }));
+
+    it('o clique vence o input theme do anfitrião', fakeAsync(() => {
+      fixture.componentRef.setInput('theme', 'dark');
+      abrir([AGUA]);
+
+      const host = fixture.nativeElement as HTMLElement;
+      expect(host.classList.contains('rp-dark')).toBeTrue();
+
+      (el.querySelector('.rp-tema') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(host.classList.contains('rp-dark')).withContext('escolha manda').toBeFalse();
+    }));
+  });
+
   it('registra a saída para o simulador — a única métrica que importa aqui', fakeAsync(() => {
     abrir([AGUA]);
 
@@ -329,7 +407,7 @@ describe('RoutinePusherComponent', () => {
     expect(el.querySelector('.rp-alerta')?.textContent).toContain('localhost:8080');
   }));
 
-  it('conclui pelo detalhe e relista, porque o PATCH responde vazio', fakeAsync(() => {
+  it('o ✓ apenas aceita as datas: fecha o painel sem tocar na API', fakeAsync(() => {
     abrir([AGUA]);
 
     (el.querySelector('.rp-card') as HTMLButtonElement).click();
@@ -337,7 +415,23 @@ describe('RoutinePusherComponent', () => {
     expect(el.querySelector('.rp-panel')).toBeTruthy();
     expect(el.querySelectorAll('.rp-occurrence').length).toBe(5);
 
-    (el.querySelector('.rp-primary') as HTMLButtonElement).click();
+    (el.querySelector('.rp-acao--confirmar') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.rp-panel')).withContext('painel fecha').toBeNull();
+    // Nenhum PATCH, nenhum DELETE: o http.verify() do afterEach reprovaria.
+    expect(el.querySelector('.rp-card')?.classList).not.toContain('rp-card--feito');
+
+    const funil = TestBed.inject(FunilService);
+    expect(funil.trilha().some(r => r.evento === 'datas_confirmadas'))
+      .withContext('aceite das datas é a métrica de acerto da IA')
+      .toBeTrue();
+  }));
+
+  it('conclui pelo ✓ da lista e relista — o PATCH responde vazio', fakeAsync(() => {
+    abrir([AGUA]);
+
+    (el.querySelector('.rp-row__ok') as HTMLButtonElement).click();
 
     const patch = http.expectOne(req => req.method === 'PATCH');
     expect(patch.request.url).toBe(`${API_V1}/lembrete/${AGUA.uuid}`);
@@ -349,6 +443,42 @@ describe('RoutinePusherComponent', () => {
     fixture.detectChanges();
 
     expect(el.querySelector('.rp-card')?.classList).toContain('rp-card--feito');
+
+    // O ✓ permanece na linha, desabilitado, para os selos não dançarem.
+    const ok = el.querySelector('.rp-row__ok') as HTMLButtonElement;
+    expect(ok.disabled).toBeTrue();
+    expect(ok.classList).toContain('rp-row__ok--feito');
+  }));
+
+  it('a linha da lista não aninha botões — HTML inválido quebraria o clique', fakeAsync(() => {
+    abrir([AGUA]);
+
+    const linha = el.querySelector('li.rp-row') as HTMLElement;
+    expect(linha.tagName).toBe('LI');
+    expect(linha.querySelector('button .rp-row__ok')).withContext('✓ fora do miolo').toBeNull();
+    expect(linha.querySelectorAll(':scope > button').length).toBe(2);
+  }));
+
+  it('exclui pelo detalhe, fecha o painel e relista', fakeAsync(() => {
+    abrir([AGUA, FATURA]);
+
+    (el.querySelector('.rp-card') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    (el.querySelector('.rp-acao--excluir') as HTMLButtonElement).click();
+
+    const del = http.expectOne(req => req.method === 'DELETE');
+    expect(del.request.url).toBe(`${API_V1}/lembrete/${AGUA.uuid}`);
+    // O backend responde texto puro aqui, não JSON.
+    del.flush('Lembrete excluído com sucesso!');
+    tick();
+
+    http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([FATURA]);
+    tick();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.rp-panel')).withContext('painel fecha').toBeNull();
+    expect(el.querySelectorAll('.rp-card').length).toBe(1);
   }));
 
   it('monta o POST do formulário com o intervalo em recorrencia e dataInicio no agora', fakeAsync(() => {

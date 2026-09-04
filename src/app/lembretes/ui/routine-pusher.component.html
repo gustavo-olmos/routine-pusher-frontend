@@ -12,13 +12,35 @@
   <div class="rp-shell">
 
     <header class="rp-header">
-      <div class="rp-eyebrow">
-        <span class="rp-eyebrow__dot"></span>
-        <span>uma solução RotaFin</span>
-        <a
-          class="rp-eyebrow__link"
-          [href]="SIMULADOR_URL"
-          (click)="irParaSimulador('cabecalho')">simulador de financiamento →</a>
+      <div class="rp-toprow">
+        <div class="rp-eyebrow">
+          <span class="rp-eyebrow__dot"></span>
+          <span>uma solução RotaFin</span>
+          <a
+            class="rp-eyebrow__link"
+            [href]="SIMULADOR_URL"
+            (click)="irParaSimulador('cabecalho')">simulador de financiamento →</a>
+        </div>
+
+        <button
+          type="button"
+          class="rp-tema"
+          (click)="alternarTema()"
+          [attr.aria-label]="escuro() ? 'usar tema claro' : 'usar tema escuro'"
+          [attr.title]="escuro() ? 'usar tema claro' : 'usar tema escuro'">
+          @if (escuro()) {
+            <!-- sol: no escuro, o botão leva de volta para o claro -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2.6v2.2M12 19.2v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"></path>
+            </svg>
+          } @else {
+            <!-- lua: no claro, o botão leva para o escuro -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20.5 14.2A8.5 8.5 0 1 1 10.3 3.6a6.6 6.6 0 0 0 10.2 10.6z"></path>
+            </svg>
+          }
+        </button>
       </div>
 
       <div class="rp-titlerow">
@@ -183,12 +205,10 @@
             }
           } @else {
             @for (card of cards(); track card.id) {
-              <li>
-                <button
-                  type="button"
-                  class="rp-row"
-                  [class.rp-row--active]="card.id === selectedId()"
-                  (click)="select(card.id)">
+              <!-- A linha é o container e o miolo é o botão: <button> dentro de
+                   <button> é inválido, e o ✓ precisa ser clicável por si. -->
+              <li class="rp-row" [class.rp-row--active]="card.id === selectedId()">
+                <button type="button" class="rp-row__main" (click)="select(card.id)">
                   <span class="rp-row__left">
                     <span class="rp-row__dot" [style.background]="card.cor"></span>
                     <span class="rp-row__label" [class.rp-row__label--feito]="card.concluido">
@@ -202,6 +222,21 @@
                     [class.rp-badge--quiet]="!card.noCron && card.id !== selectedId()">
                     {{ card.cron }}
                   </span>
+                </button>
+
+                <button
+                  type="button"
+                  class="rp-row__ok"
+                  [class.rp-row__ok--feito]="card.concluido"
+                  [disabled]="card.concluido"
+                  (click)="concluirLembrete(card.id)"
+                  [attr.aria-label]="card.concluido
+                    ? card.label + ' já está concluído'
+                    : 'marcar ' + card.label + ' como concluído'"
+                  [attr.title]="card.concluido ? 'já concluído' : 'concluí este'">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M5 12.5l4.5 4.5L19 7.5"></path>
+                  </svg>
                 </button>
               </li>
             }
@@ -345,18 +380,25 @@
       <div class="rp-panel__actions">
         <button
           type="button"
-          class="rp-primary"
-          [disabled]="alvo.status === 'CONCLUIDO'"
-          (click)="concluir()">
-          {{ alvo.status === 'CONCLUIDO' ? 'já concluído' : 'concluí esta' }}
+          class="rp-acao rp-acao--confirmar"
+          (click)="confirmarDatas()"
+          aria-label="confirmar: são estas as datas que eu queria"
+          title="são estas as datas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12.5l4.5 4.5L19 7.5"></path>
+          </svg>
         </button>
-        <button type="button" class="rp-secondary rp-mono" (click)="excluir()">excluir</button>
+        <button
+          type="button"
+          class="rp-acao rp-acao--excluir"
+          (click)="excluir()"
+          aria-label="excluir lembrete"
+          title="excluir">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <path d="M7 7l10 10M17 7L7 17"></path>
+          </svg>
+        </button>
       </div>
-
-      <p class="rp-panel__note rp-mono">
-        as datas vêm do servidor em <span class="rp-token">proximasExecucoes</span> — concluir
-        reprojeta a série.
-      </p>
     </div>
   </div>
 }
