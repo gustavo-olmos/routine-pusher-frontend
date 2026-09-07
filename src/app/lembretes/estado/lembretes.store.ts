@@ -85,7 +85,7 @@ export class LembretesStore {
 
   /** O caminho principal: uma frase vira lembrete estruturado. */
   async criarPorFrase(frase: string): Promise<Lembrete | null> {
-    return this.criar(
+    return this.enviar(
       () => this.lembreteApi.criarPorFrase(frase),
       novo => {
         this.iaUsada.update(n => n + 1);
@@ -99,12 +99,23 @@ export class LembretesStore {
   }
 
   async criarPorFormulario(entrada: LembreteEntrada): Promise<Lembrete | null> {
-    return this.criar(
+    return this.enviar(
       () => this.lembreteApi.criar(entrada),
       novo => {
         this.funil.registrar('lembrete_criado_form', { categoria: novo.categoria?.nome });
         this.avaliarConvite(novo, novo.titulo);
       },
+    );
+  }
+
+  /**
+   * Edição. O `PUT` exige o corpo completo — mandar só o campo alterado devolve
+   * 400 ("Failed to read request").
+   */
+  async atualizar(uuid: string, entrada: LembreteEntrada): Promise<Lembrete | null> {
+    return this.enviar(
+      () => this.lembreteApi.atualizar(uuid, entrada),
+      alterado => this.funil.registrar('lembrete_editado', { categoria: alterado.categoria?.nome }),
     );
   }
 
@@ -126,21 +137,22 @@ export class LembretesStore {
     this.convite.set(null);
   }
 
-  private async criar(
+  /** Tronco comum de POST e PUT: trava reentrada, relista e trata a falha. */
+  private async enviar(
     chamada: () => import('rxjs').Observable<Lembrete>,
-    aoCriar: (novo: Lembrete) => void,
+    aoConcluir: (resultado: Lembrete) => void,
   ): Promise<Lembrete | null> {
     if (this.enviando()) return null;
     this.enviando.set(true);
     this.falha.set(null);
     try {
-      const novo = await firstValueFrom(chamada());
+      const resultado = await firstValueFrom(chamada());
       // Relista em vez de dar push: a ordenação é do servidor, e emular a regra
       // aqui é a receita para a lista pular de posição no próximo refresh.
       await this.recarregar();
-      this.recemCriado.set(novo.uuid);
-      aoCriar(novo);
-      return novo;
+      this.recemCriado.set(resultado.uuid);
+      aoConcluir(resultado);
+      return resultado;
     } catch (erro) {
       this.falha.set(normalizarFalha(erro));
       return null;

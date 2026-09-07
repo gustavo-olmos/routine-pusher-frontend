@@ -11,6 +11,7 @@ export type EventoFunil =
   | 'sugestao_usada'
   | 'lembrete_criado_ia'
   | 'lembrete_criado_form'
+  | 'lembrete_editado'
   | 'lembrete_concluido'
   | 'lembrete_excluido'
   | 'datas_confirmadas'

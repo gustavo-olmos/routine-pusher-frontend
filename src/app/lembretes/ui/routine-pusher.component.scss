@@ -1554,3 +1554,23 @@ li.rp-row { cursor: default; }
     cursor: default;
   }
 }
+
+/* ---- edição -------------------------------------------------------------- */
+
+.rp-acao--editar:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Aviso do campo travado: o PUT do servidor ignora categoriaId. */
+.rp-campo__nota {
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--text-5);
+}
+
+.rp-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

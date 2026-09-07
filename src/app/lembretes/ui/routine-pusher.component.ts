@@ -10,18 +10,18 @@ import {
 } from '@angular/core';
 
 import { resumoDosCampos } from '../api/erros';
-import {
-  DIAS_SEMANA,
-  DiaSemana,
-  Lembrete,
-  LembreteEntrada,
-  PoliticaDiaUtil,
-  RECORRENCIA_VAZIA,
-} from '../api/modelos';
+import { DIAS_SEMANA, DiaSemana, Lembrete, PoliticaDiaUtil } from '../api/modelos';
 import { Aviso, NotificacoesService } from '../api/notificacoes.service';
 import { SEM_CRON, cronEquivalente, resumoRecorrencia } from '../dominio/cron';
 import {
-  agoraLocalIso,
+  Estrategia,
+  EstadoFormulario,
+  FORMULARIO_VAZIO,
+  Unidade,
+  paraEntrada,
+  paraFormulario,
+} from '../dominio/formulario';
+import {
   dataCurta,
   diaMes,
   diaSemanaCurto,
@@ -71,10 +71,6 @@ interface ExecucaoVm {
   gap: string;
   first: boolean;
 }
-
-/** As estratégias de recorrência são exclusivas; o formulário escolhe uma. */
-type Estrategia = 'intervalo' | 'semana' | 'mes';
-type Unidade = 'minutos' | 'horas' | 'dias';
 
 /** Altura do card + gap do carrossel — precisa casar com o SCSS. */
 const CARD_STEP = 364;
@@ -132,6 +128,8 @@ export class RoutinePusherComponent implements OnInit {
   protected readonly draft = signal('');
   protected readonly open = signal(false);
   protected readonly formAberto = signal(false);
+  /** uuid em edição, ou null quando o formulário está criando. */
+  protected readonly editandoId = signal<string | null>(null);
   protected readonly isMobile = signal(
     typeof window !== 'undefined' ? window.innerWidth < 640 : false,
   );
@@ -325,12 +323,28 @@ export class RoutinePusherComponent implements OnInit {
   protected abrirFormulario(): void {
     if (this.noLimite()) return;
     this.store.limparFalha();
-    this.fCategoria.set(this.fCategoria() ?? this.categorias()[0]?.id ?? null);
+    this.editandoId.set(null);
+    this.aplicarEstado({
+      ...FORMULARIO_VAZIO,
+      categoriaId: this.categorias()[0]?.id ?? null,
+    });
+    this.formAberto.set(true);
+  }
+
+  /** Abre o mesmo formulário preenchido com o lembrete aberto no detalhe. */
+  protected abrirEdicao(): void {
+    const alvo = this.selected();
+    if (!alvo) return;
+    this.store.limparFalha();
+    this.editandoId.set(alvo.uuid);
+    this.aplicarEstado(paraFormulario(alvo));
+    this.open.set(false);
     this.formAberto.set(true);
   }
 
   protected fecharFormulario(): void {
     this.formAberto.set(false);
+    this.editandoId.set(null);
   }
 
   protected alternarDia(dia: DiaSemana): void {
@@ -341,69 +355,54 @@ export class RoutinePusherComponent implements OnInit {
 
   protected async salvarFormulario(): Promise<void> {
     if (this.enviando()) return;
-    const novo = await this.store.criarPorFormulario(this.montarEntrada());
-    if (!novo) return;
+
+    const entrada = paraEntrada(this.estadoAtual());
+    const emEdicao = this.editandoId();
+    const salvo = emEdicao
+      ? await this.store.atualizar(emEdicao, entrada)
+      : await this.store.criarPorFormulario(entrada);
+
+    if (!salvo) return;
     this.formAberto.set(false);
-    this.limparFormulario();
-    this.select(novo.uuid);
+    this.editandoId.set(null);
+    this.select(salvo.uuid);
   }
 
-  /**
-   * Monta o corpo do POST a partir do formulário.
-   *
-   * Duas armadilhas moram aqui:
-   * - os intervalos vão em `recorrencia`, nunca em `notificacao`;
-   * - em recorrência por intervalo, `dataInicio` é o instante ATUAL, não o do
-   *   primeiro disparo: quem soma o passo é o servidor. Somar aqui atrasaria o
-   *   lembrete no dobro do intervalo.
-   */
-  protected montarEntrada(): LembreteEntrada {
-    const estrategia = this.fEstrategia();
-    const porIntervalo = estrategia === 'intervalo';
-    const passo = Math.max(1, Number(this.fPasso()) || 1);
-    const quantidade = Number(this.fQuantidade());
+  /** Corpo que seria enviado agora — a conversão em si mora no domínio. */
+  protected montarEntrada() {
+    return paraEntrada(this.estadoAtual());
+  }
 
+  private estadoAtual(): EstadoFormulario {
     return {
-      titulo: this.fTitulo().trim(),
-      descricao: this.fDescricao().trim() || null,
-      categoriaId: this.fCategoria() as number,
-      recorrencia: {
-        ...RECORRENCIA_VAZIA,
-        quantidade: Number.isFinite(quantidade) && quantidade > 0 ? quantidade : null,
-        intervaloMinutos: porIntervalo && this.fUnidade() === 'minutos' ? passo : null,
-        intervaloHoras: porIntervalo && this.fUnidade() === 'horas' ? passo : null,
-        intervaloDias: porIntervalo && this.fUnidade() === 'dias' ? passo : null,
-        posicaoDaSemanaNoMes: estrategia === 'semana' ? this.fPosicaoMes() : null,
-        diasFixosNoMes: estrategia === 'mes' ? this.diasDoMes() : [],
-        diasDaSemana: estrategia === 'semana' ? this.fDiasSemana() : [],
-        politicaDiaUtil: porIntervalo ? null : this.fPolitica(),
-      },
-      notificacao: {
-        metodo: ['pop-up'],
-        horario: porIntervalo ? null : this.fHorario(),
-        dataInicio: porIntervalo ? agoraLocalIso() : null,
-        dataFim: null,
-        datasEspecificadas: [],
-      },
+      titulo: this.fTitulo(),
+      descricao: this.fDescricao(),
+      categoriaId: this.fCategoria(),
+      estrategia: this.fEstrategia(),
+      passo: this.fPasso(),
+      unidade: this.fUnidade(),
+      diasSemana: this.fDiasSemana(),
+      posicaoMes: this.fPosicaoMes(),
+      diasMes: this.fDiasMes(),
+      horario: this.fHorario(),
+      politica: this.fPolitica(),
+      quantidade: this.fQuantidade(),
     };
   }
 
-  /** "10, 25" -> [10, 25], descartando o que não é dia de mês válido. */
-  private diasDoMes(): number[] {
-    const numeros = this.fDiasMes()
-      .split(/[^0-9]+/)
-      .map(Number)
-      .filter(n => n >= 1 && n <= 31);
-    return [...new Set(numeros)].sort((a, b) => a - b);
-  }
-
-  private limparFormulario(): void {
-    this.fTitulo.set('');
-    this.fDescricao.set('');
-    this.fDiasSemana.set([]);
-    this.fDiasMes.set('');
-    this.fPosicaoMes.set(null);
-    this.fQuantidade.set('');
+  private aplicarEstado(estado: EstadoFormulario): void {
+    this.fTitulo.set(estado.titulo);
+    this.fDescricao.set(estado.descricao);
+    this.fCategoria.set(estado.categoriaId);
+    this.fEstrategia.set(estado.estrategia);
+    this.fPasso.set(estado.passo);
+    this.fUnidade.set(estado.unidade);
+    this.fDiasSemana.set(estado.diasSemana);
+    this.fPosicaoMes.set(estado.posicaoMes);
+    this.fDiasMes.set(estado.diasMes);
+    this.fHorario.set(estado.horario);
+    this.fPolitica.set(estado.politica);
+    this.fQuantidade.set(estado.quantidade);
   }
 
   // ---- funil ---------------------------------------------------------------

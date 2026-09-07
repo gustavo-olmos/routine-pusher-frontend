@@ -459,6 +459,106 @@ describe('RoutinePusherComponent', () => {
     expect(linha.querySelectorAll(':scope > button').length).toBe(2);
   }));
 
+  describe('edição', () => {
+    /** Abre o detalhe do primeiro lembrete e clica no lápis. */
+    function abrirEdicao(lembretes: Lembrete[]): void {
+      abrir(lembretes);
+      (el.querySelector('.rp-card') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      (el.querySelector('.rp-acao--editar') as HTMLButtonElement).click();
+      fixture.detectChanges();
+    }
+
+    it('abre o formulário preenchido com a regra do lembrete', fakeAsync(() => {
+      abrirEdicao([FATURA]);
+
+      expect(el.querySelector('.rp-panel--form')).withContext('formulário abre').toBeTruthy();
+      expect(el.querySelector('.rp-panel')?.textContent).toContain('editar lembrete');
+
+      const titulo = el.querySelector('.rp-form .rp-input') as HTMLInputElement;
+      expect(titulo.value).toBe('Pagar a fatura do cartão');
+      // FATURA é diasFixosNoMes [10]: a estratégia lida deve ser "dias do mês".
+      const ativo = el.querySelector('.rp-segmento__op--ativo');
+      expect(ativo?.textContent?.trim()).toBe('dias do mês');
+    }));
+
+    it('mostra a categoria do lembrete, não a primeira da lista', fakeAsync(() => {
+      // FATURA é 'Casa' (id 3) e 'Saúde' (id 1) é a primeira opção. Com [value] só
+      // no <select>, as options do @for nasciam depois e o campo caía em Saúde.
+      abrirEdicao([FATURA]);
+
+      const select = el.querySelector('.rp-form select.rp-input') as HTMLSelectElement;
+      expect(select.value).toBe('3');
+      expect(select.selectedOptions[0].textContent?.trim()).toBe('Casa');
+    }));
+
+    it('trava a categoria, porque o PUT do servidor ignora categoriaId', fakeAsync(() => {
+      abrirEdicao([FATURA]);
+
+      const select = el.querySelector('.rp-form select.rp-input') as HTMLSelectElement;
+      expect(select.disabled).withContext('categoria travada na edição').toBeTrue();
+      expect(el.querySelector('.rp-campo__nota')?.textContent).toContain('não troca a categoria');
+    }));
+
+    it('salva com PUT no uuid certo, corpo completo, e relista', fakeAsync(() => {
+      abrirEdicao([FATURA]);
+
+      const titulo = el.querySelector('.rp-form .rp-input') as HTMLInputElement;
+      titulo.value = 'Fatura renegociada';
+      titulo.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      (el.querySelector('.rp-panel--form .rp-primary') as HTMLButtonElement).click();
+
+      const put = http.expectOne(req => req.method === 'PUT');
+      expect(put.request.url).toBe(`${API_V1}/lembrete/${FATURA.uuid}`);
+      expect(put.request.body.titulo).toBe('Fatura renegociada');
+      // Corpo completo: parcial devolve 400 "Failed to read request".
+      expect(put.request.body.recorrencia).toBeDefined();
+      expect(put.request.body.notificacao.metodo).toEqual(['pop-up']);
+      // A regra original tem de sobreviver a uma edição só de título.
+      expect(put.request.body.recorrencia.diasFixosNoMes).toEqual([10]);
+      expect(put.request.body.recorrencia.politicaDiaUtil).toBe('PULAR');
+
+      put.flush({ ...FATURA, titulo: 'Fatura renegociada' });
+      tick();
+      http.expectOne(req => req.url === `${API_V1}/lembrete`)
+        .flush([{ ...FATURA, titulo: 'Fatura renegociada' }]);
+      tick();
+      fixture.detectChanges();
+
+      expect(el.querySelector('.rp-panel--form')).withContext('formulário fecha').toBeNull();
+      expect(el.textContent).toContain('Fatura renegociada');
+    }));
+
+    it('criar depois de editar volta a ser POST, sem herdar o uuid', fakeAsync(() => {
+      abrirEdicao([FATURA]);
+      (el.querySelector('.rp-panel--form .rp-secondary') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      (el.querySelector('.rp-examples .rp-reset') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      const titulo = el.querySelector('.rp-form .rp-input') as HTMLInputElement;
+      expect(titulo.value).withContext('campos limpos').toBe('');
+
+      const select = el.querySelector('.rp-form select.rp-input') as HTMLSelectElement;
+      expect(select.disabled).withContext('categoria liberada ao criar').toBeFalse();
+
+      titulo.value = 'Novo lembrete';
+      titulo.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      (el.querySelector('.rp-panel--form .rp-primary') as HTMLButtonElement).click();
+
+      const post = http.expectOne(req => req.method === 'POST');
+      expect(post.request.url).toBe(`${API_V1}/lembrete`);
+      post.flush(AGUA);
+      tick();
+      http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([FATURA, AGUA]);
+      tick();
+    }));
+  });
+
   it('exclui pelo detalhe, fecha o painel e relista', fakeAsync(() => {
     abrir([AGUA, FATURA]);
 

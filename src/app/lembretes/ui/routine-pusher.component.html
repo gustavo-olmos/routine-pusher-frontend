@@ -380,6 +380,17 @@
       <div class="rp-panel__actions">
         <button
           type="button"
+          class="rp-acao rp-acao--editar"
+          (click)="abrirEdicao()"
+          aria-label="editar este lembrete"
+          title="editar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"></path>
+            <path d="M14.5 6.5l3 3"></path>
+          </svg>
+        </button>
+        <button
+          type="button"
           class="rp-acao rp-acao--confirmar"
           (click)="confirmarDatas()"
           aria-label="confirmar: são estas as datas que eu queria"
@@ -410,12 +421,12 @@
       [class.rp-panel--sheet]="isMobile()"
       role="dialog"
       aria-modal="true"
-      aria-label="novo lembrete pelo formulário"
+      [attr.aria-label]="editandoId() ? 'editar lembrete' : 'novo lembrete pelo formulário'"
       (click)="$event.stopPropagation()">
       <div class="rp-panel__head">
         <div class="rp-panel__title">
-          <span class="rp-label">novo lembrete</span>
-          <span class="rp-panel__name">pelo formulário</span>
+          <span class="rp-label">{{ editandoId() ? 'editar lembrete' : 'novo lembrete' }}</span>
+          <span class="rp-panel__name">{{ editandoId() ? fTitulo() : 'pelo formulário' }}</span>
         </div>
         <button type="button" class="rp-close" (click)="fecharFormulario()" aria-label="fechar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -454,11 +465,20 @@
             class="rp-input"
             [class.rp-input--erro]="!!erroDe()['categoriaId']"
             [value]="fCategoria()"
+            [disabled]="!!editandoId()"
             (change)="fCategoria.set(+$any($event.target).value)">
             @for (c of categorias(); track c.id) {
-              <option [value]="c.id">{{ c.nome }}</option>
+              <!-- [selected] na option, não só [value] no select: as options vêm de
+                   um @for e nascem depois do binding do select, que então cai na
+                   primeira e mostra a categoria errada. -->
+              <option [value]="c.id" [selected]="c.id === fCategoria()">{{ c.nome }}</option>
             }
           </select>
+          @if (editandoId()) {
+            <span class="rp-campo__nota rp-mono">
+              o servidor não troca a categoria numa edição — crie outro lembrete para mudá-la
+            </span>
+          }
           @if (erroDe()['categoriaId']; as e) { <span class="rp-campo__erro rp-mono">{{ e }}</span> }
         </label>
 
@@ -575,7 +595,9 @@
 
       <div class="rp-panel__actions">
         <button type="button" class="rp-primary" [disabled]="enviando()" (click)="salvarFormulario()">
-          {{ enviando() ? 'criando…' : 'criar lembrete' }}
+          {{ enviando()
+              ? (editandoId() ? 'salvando…' : 'criando…')
+              : (editandoId() ? 'salvar alterações' : 'criar lembrete') }}
         </button>
         <button type="button" class="rp-secondary rp-mono" (click)="fecharFormulario()">cancelar</button>
       </div>
