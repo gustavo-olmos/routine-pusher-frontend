@@ -1574,3 +1574,184 @@ li.rp-row { cursor: default; }
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+/* ---- selo de categoria --------------------------------------------------- */
+
+/* A cor vem do dado, via --cor-categoria no elemento. */
+.rp-categoria {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid color-mix(in oklab, var(--cor-categoria) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--cor-categoria) 12%, transparent);
+  color: var(--text-2);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+
+  &__ponto {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--cor-categoria);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--cor-categoria) 22%, transparent);
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: var(--cor-categoria);
+    background: color-mix(in oklab, var(--cor-categoria) 22%, transparent);
+    color: var(--text);
+  }
+}
+
+/* O card virou <div> e o CTA virou <button>: reset para ele seguir parecendo
+   o link do design, e o cursor sai do card inteiro, que já não é clicável. */
+.rp-card { cursor: default; }
+
+button.rp-cta {
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rp-panel__sub {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+/* ---- gerenciador de categorias ------------------------------------------- */
+
+.rp-panel--categorias { width: 440px; }
+
+.rp-cats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rp-cat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 8px 10px;
+  border: 1px solid var(--glass-border-soft);
+  border-radius: 10px;
+  background: var(--glass-fill-quiet);
+
+  &__cor {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  &__nome {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__campo {
+    flex: 1;
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  &__acoes {
+    flex: none;
+    display: flex;
+    gap: 6px;
+  }
+
+  &__cores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  &--editando {
+    flex-wrap: wrap;
+    border-color: var(--accent);
+    background: var(--glass-fill);
+  }
+}
+
+/* Os círculos de ação do detalhe são grandes demais para uma linha de lista. */
+.rp-acao--pequena {
+  width: 30px;
+  height: 30px;
+
+  svg { width: 14px; height: 14px; }
+}
+
+.rp-cor {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+
+  &:hover { transform: scale(1.15); }
+
+  &--ativa {
+    border-color: var(--text);
+    box-shadow: 0 0 0 2px var(--glass-fill);
+  }
+}
+
+.rp-cat-nova {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+
+  &__linha {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  &__add {
+    flex: none;
+    min-height: 42px;
+  }
+}
+
+/* O título divide a linha com o selo de categoria, que fica à direita. O cron
+   saiu do card — continua na lista, onde a comparação com a regra faz sentido. */
+.rp-card__titulo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  .rp-card__label { min-width: 0; }
+
+  .rp-categoria {
+    flex: none;
+    margin-top: 4px;
+  }
+}

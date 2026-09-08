@@ -3,7 +3,13 @@ import { firstValueFrom } from 'rxjs';
 
 import { CategoriaService, LembreteService, SessaoService } from '../api/lembrete.service';
 import { Falha, normalizarFalha } from '../api/erros';
-import { Categoria, Lembrete, LembreteEntrada, Sessao } from '../api/modelos';
+import {
+  Categoria,
+  CategoriaEntrada,
+  Lembrete,
+  LembreteEntrada,
+  Sessao,
+} from '../api/modelos';
 import { FunilService } from '../funil/funil.service';
 import {
   GATILHO_CATEGORIA,
@@ -38,6 +44,9 @@ export class LembretesStore {
   readonly carregando = signal(true);
   readonly enviando = signal(false);
   readonly falha = signal<Falha | null>(null);
+  /** Falha do gerenciador de categorias — separada para aparecer dentro do modal. */
+  readonly falhaCategoria = signal<Falha | null>(null);
+  readonly salvandoCategoria = signal(false);
   readonly convite = signal<Convite | null>(null);
 
   /** uuid do último lembrete criado, para a tela focar nele. */
@@ -129,6 +138,48 @@ export class LembretesStore {
 
   limparFalha(): void {
     this.falha.set(null);
+  }
+
+  limparFalhaCategoria(): void {
+    this.falhaCategoria.set(null);
+  }
+
+  // ---- categorias ----------------------------------------------------------
+
+  async criarCategoria(entrada: CategoriaEntrada): Promise<boolean> {
+    return this.mutarCategoria(() => this.categoriaApi.criar(entrada), 'categoria_criada');
+  }
+
+  async atualizarCategoria(id: number, entrada: CategoriaEntrada): Promise<boolean> {
+    return this.mutarCategoria(() => this.categoriaApi.atualizar(id, entrada), 'categoria_editada');
+  }
+
+  /** O servidor recusa com 422 se ainda houver lembretes usando a categoria. */
+  async excluirCategoria(id: number): Promise<boolean> {
+    return this.mutarCategoria(() => this.categoriaApi.excluir(id), 'categoria_excluida');
+  }
+
+  private async mutarCategoria(
+    chamada: () => import('rxjs').Observable<unknown>,
+    evento: 'categoria_criada' | 'categoria_editada' | 'categoria_excluida',
+  ): Promise<boolean> {
+    if (this.salvandoCategoria()) return false;
+    this.salvandoCategoria.set(true);
+    this.falhaCategoria.set(null);
+    try {
+      await firstValueFrom(chamada());
+      // Relista os dois: o lembrete carrega uma cópia da categoria, então
+      // renomear ou recolorir precisa refletir nos cards também.
+      this.categorias.set(await firstValueFrom(this.categoriaApi.listar()));
+      await this.recarregar();
+      this.funil.registrar(evento);
+      return true;
+    } catch (erro) {
+      this.falhaCategoria.set(normalizarFalha(erro));
+      return false;
+    } finally {
+      this.salvandoCategoria.set(false);
+    }
   }
 
   dispensarConvite(): void {

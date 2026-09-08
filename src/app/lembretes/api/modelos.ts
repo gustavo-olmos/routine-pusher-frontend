@@ -22,6 +22,19 @@ export interface Categoria {
   fatorOrdem: number;
 }
 
+/** Corpo de POST/PUT de categoria. `nome` e `cor` são obrigatórios; `fatorOrdem` não. */
+export interface CategoriaEntrada {
+  nome: string;
+  cor: string;
+  fatorOrdem?: number | null;
+}
+
+/** Paleta sugerida — as cores das categorias originais do backend. */
+export const CORES_CATEGORIA: readonly string[] = [
+  '#43A047', '#1E88E5', '#FB8C00', '#8E24AA', '#546E7A',
+  '#00897B', '#E53935', '#6D4C41', '#3949AB', '#C0CA33',
+];
+
 /**
  * Como o lembrete se repete. Escolha UMA estratégia — os intervalos moram aqui,
  * não em `notificacao`, e misturar dois eixos é o caminho mais curto para o 422.

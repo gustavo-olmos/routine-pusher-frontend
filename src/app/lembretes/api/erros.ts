@@ -20,6 +20,8 @@ export interface Falha {
   limiteAtingido: boolean;
   /** Rede/CORS/servidor fora — em dev quase sempre é o backend local desligado. */
   semRede: boolean;
+  /** 401: a operação exige login. Em produção é o caso da escrita de categoria. */
+  semPermissao: boolean;
 }
 
 const SEM_REDE =
@@ -29,15 +31,34 @@ const SEM_REDE =
 
 const GENERICA = 'Algo deu errado ao falar com o servidor. Tente de novo.';
 
+const SEM_PERMISSAO =
+  'Esta operação exige login. Criar, editar e excluir categorias funciona no ' +
+  'backend local, mas em produção o servidor responde 401 — categoria é cenário ' +
+  'fixo lá.';
+
 /** Traduz qualquer erro do HttpClient para algo que a tela consegue mostrar. */
 export function normalizarFalha(erro: unknown): Falha {
   if (!(erro instanceof HttpErrorResponse)) {
-    return { status: 0, mensagem: GENERICA, campos: {}, limiteAtingido: false, semRede: false };
+    return {
+      status: 0,
+      mensagem: GENERICA,
+      campos: {},
+      limiteAtingido: false,
+      semRede: false,
+      semPermissao: false,
+    };
   }
 
   // status 0 = a requisição nem chegou (offline, DNS, CORS, backend desligado).
   if (erro.status === 0) {
-    return { status: 0, mensagem: SEM_REDE, campos: {}, limiteAtingido: false, semRede: true };
+    return {
+      status: 0,
+      mensagem: SEM_REDE,
+      campos: {},
+      limiteAtingido: false,
+      semRede: true,
+      semPermissao: false,
+    };
   }
 
   const corpo = corpoDoErro(erro);
@@ -50,6 +71,18 @@ export function normalizarFalha(erro: unknown): Falha {
       campos,
       limiteAtingido: true,
       semRede: false,
+      semPermissao: false,
+    };
+  }
+
+  if (erro.status === 401) {
+    return {
+      status: 401,
+      mensagem: SEM_PERMISSAO,
+      campos,
+      limiteAtingido: false,
+      semRede: false,
+      semPermissao: true,
     };
   }
 
@@ -61,6 +94,7 @@ export function normalizarFalha(erro: unknown): Falha {
     campos,
     limiteAtingido: false,
     semRede: false,
+    semPermissao: false,
   };
 }
 

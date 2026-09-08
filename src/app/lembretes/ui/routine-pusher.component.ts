@@ -10,7 +10,14 @@ import {
 } from '@angular/core';
 
 import { resumoDosCampos } from '../api/erros';
-import { DIAS_SEMANA, DiaSemana, Lembrete, PoliticaDiaUtil } from '../api/modelos';
+import {
+  CORES_CATEGORIA,
+  Categoria,
+  DIAS_SEMANA,
+  DiaSemana,
+  Lembrete,
+  PoliticaDiaUtil,
+} from '../api/modelos';
 import { Aviso, NotificacoesService } from '../api/notificacoes.service';
 import { SEM_CRON, cronEquivalente, resumoRecorrencia } from '../dominio/cron';
 import {
@@ -102,6 +109,7 @@ export class RoutinePusherComponent implements OnInit {
   protected readonly MAX_TITULO = MAX_TITULO;
   protected readonly MAX_DESCRICAO = MAX_DESCRICAO;
   protected readonly SIMULADOR_URL = SIMULADOR_URL;
+  protected readonly CORES = CORES_CATEGORIA;
 
   protected readonly lembretes = this.store.lembretes;
   protected readonly categorias = this.store.categorias;
@@ -113,6 +121,8 @@ export class RoutinePusherComponent implements OnInit {
   protected readonly noLimite = this.store.noLimite;
   protected readonly restantes = this.store.restantes;
   protected readonly avisos = this.notificacoes.avisos;
+  protected readonly falhaCategoria = this.store.falhaCategoria;
+  protected readonly salvandoCategoria = this.store.salvandoCategoria;
 
   /**
    * Escolha explícita do visitante, ou `null` enquanto ele não tocar no botão.
@@ -130,6 +140,13 @@ export class RoutinePusherComponent implements OnInit {
   protected readonly formAberto = signal(false);
   /** uuid em edição, ou null quando o formulário está criando. */
   protected readonly editandoId = signal<string | null>(null);
+
+  // ---- gerenciador de categorias -------------------------------------------
+  protected readonly categoriasAberto = signal(false);
+  /** id da categoria em edição inline, ou null. */
+  protected readonly catEditandoId = signal<number | null>(null);
+  protected readonly catNome = signal('');
+  protected readonly catCor = signal(CORES_CATEGORIA[0]);
   protected readonly isMobile = signal(
     typeof window !== 'undefined' ? window.innerWidth < 640 : false,
   );
@@ -420,6 +437,50 @@ export class RoutinePusherComponent implements OnInit {
     this.funil.registrar('tema_alternado', { para: proximo });
   }
 
+  // ---- categorias ----------------------------------------------------------
+
+  protected abrirCategorias(): void {
+    this.store.limparFalhaCategoria();
+    this.cancelarEdicaoCategoria();
+    this.categoriasAberto.set(true);
+  }
+
+  protected fecharCategorias(): void {
+    this.categoriasAberto.set(false);
+    this.cancelarEdicaoCategoria();
+  }
+
+  /** Entra no modo de edição inline de uma categoria da lista. */
+  protected editarCategoria(categoria: Categoria): void {
+    this.store.limparFalhaCategoria();
+    this.catEditandoId.set(categoria.id);
+    this.catNome.set(categoria.nome);
+    this.catCor.set(categoria.cor);
+  }
+
+  protected cancelarEdicaoCategoria(): void {
+    this.catEditandoId.set(null);
+    this.catNome.set('');
+    this.catCor.set(CORES_CATEGORIA[0]);
+  }
+
+  protected async salvarCategoria(): Promise<void> {
+    const nome = this.catNome().trim();
+    if (!nome) return;
+
+    const entrada = { nome, cor: this.catCor() };
+    const emEdicao = this.catEditandoId();
+    const ok = emEdicao
+      ? await this.store.atualizarCategoria(emEdicao, entrada)
+      : await this.store.criarCategoria(entrada);
+
+    if (ok) this.cancelarEdicaoCategoria();
+  }
+
+  protected async excluirCategoria(id: number): Promise<void> {
+    await this.store.excluirCategoria(id);
+  }
+
   protected dispensarConvite(): void {
     this.store.dispensarConvite();
   }
@@ -441,7 +502,8 @@ export class RoutinePusherComponent implements OnInit {
 
   @HostListener('document:keydown.escape')
   protected onEscape(): void {
-    if (this.formAberto()) this.formAberto.set(false);
+    if (this.categoriasAberto()) this.fecharCategorias();
+    else if (this.formAberto()) this.fecharFormulario();
     else this.open.set(false);
   }
 

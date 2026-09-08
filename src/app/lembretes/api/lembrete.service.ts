@@ -4,7 +4,14 @@ import { Observable } from 'rxjs';
 
 import { API_V1 } from '../lembretes.config';
 import { agoraLocalIso } from '../dominio/datas';
-import { Categoria, FraseEntrada, Lembrete, LembreteEntrada, Sessao } from './modelos';
+import {
+  Categoria,
+  CategoriaEntrada,
+  FraseEntrada,
+  Lembrete,
+  LembreteEntrada,
+  Sessao,
+} from './modelos';
 
 /**
  * `sortInfo` e `decrescente` são obrigatórios nas listagens — sem eles a resposta
@@ -29,13 +36,36 @@ export class SessaoService {
   }
 }
 
+/**
+ * Categorias.
+ *
+ * Escrita funciona no backend local mas devolve **401 em produção**, onde
+ * POST/PUT/DELETE exigem login. A interface precisa tratar isso como estado
+ * esperado, não como erro genérico.
+ */
 @Injectable()
 export class CategoriaService {
   private readonly http = inject(HttpClient);
 
-  /** Cenário fixo (5 itens), não dado do visitante: o front só lê. */
   listar(): Observable<Categoria[]> {
     return this.http.get<Categoria[]>(`${API_V1}/categoria`, { params: ordenacao('id') });
+  }
+
+  criar(entrada: CategoriaEntrada): Observable<Categoria> {
+    return this.http.post<Categoria>(`${API_V1}/categoria`, entrada);
+  }
+
+  atualizar(id: number, entrada: CategoriaEntrada): Observable<Categoria> {
+    return this.http.put<Categoria>(`${API_V1}/categoria/${id}`, entrada);
+  }
+
+  /**
+   * Responde texto puro no sucesso, mas **422 com JSON** quando ainda há
+   * lembretes usando a categoria — daí o `responseType: 'text'` e o parse
+   * defensivo do erro em `normalizarFalha`.
+   */
+  excluir(id: number): Observable<unknown> {
+    return this.http.delete(`${API_V1}/categoria/${id}`, { responseType: 'text' });
   }
 }
 

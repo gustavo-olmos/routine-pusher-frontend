@@ -224,12 +224,24 @@ describe('RoutinePusherComponent', () => {
   it('traduz a recorrência para cron, e admite quando não há equivalente', fakeAsync(() => {
     abrir([AGUA, FATURA]);
 
-    const selos = Array.from(el.querySelectorAll('.rp-card .rp-badge')).map(b =>
+    // O cron saiu do card a pedido; segue na lista, que é onde ele informa.
+    const selos = Array.from(el.querySelectorAll('.rp-row .rp-badge')).map(b =>
       b.textContent?.trim(),
     );
     expect(selos[0]).toBe('0 */3 * * *');
     // A fatura pula feriado — cron não sabe o que é feriado.
     expect(selos[1]).toBe('sem equivalente');
+  }));
+
+  it('o card mostra a categoria à direita e não mostra mais o cron', fakeAsync(() => {
+    abrir([FATURA]);
+
+    const card = el.querySelector('.rp-card') as HTMLElement;
+    expect(card.querySelector('.rp-badge')).withContext('sem selo de cron no card').toBeNull();
+    // O selo de categoria divide a linha do título, encostado à direita.
+    expect(card.querySelector('.rp-card__titulo .rp-categoria')).toBeTruthy();
+    expect(card.querySelector('.rp-card__titulo')?.lastElementChild?.classList)
+      .toContain('rp-categoria');
   }));
 
   it('cria por frase mandando o relógio do usuário e reabre a lista', fakeAsync(() => {
@@ -410,7 +422,7 @@ describe('RoutinePusherComponent', () => {
   it('o ✓ apenas aceita as datas: fecha o painel sem tocar na API', fakeAsync(() => {
     abrir([AGUA]);
 
-    (el.querySelector('.rp-card') as HTMLButtonElement).click();
+    (el.querySelector('.rp-cta') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(el.querySelector('.rp-panel')).toBeTruthy();
     expect(el.querySelectorAll('.rp-occurrence').length).toBe(5);
@@ -463,7 +475,7 @@ describe('RoutinePusherComponent', () => {
     /** Abre o detalhe do primeiro lembrete e clica no lápis. */
     function abrirEdicao(lembretes: Lembrete[]): void {
       abrir(lembretes);
-      (el.querySelector('.rp-card') as HTMLButtonElement).click();
+      (el.querySelector('.rp-cta') as HTMLButtonElement).click();
       fixture.detectChanges();
       (el.querySelector('.rp-acao--editar') as HTMLButtonElement).click();
       fixture.detectChanges();
@@ -559,10 +571,130 @@ describe('RoutinePusherComponent', () => {
     }));
   });
 
+  describe('categorias', () => {
+    function abrirGerenciador(): void {
+      abrir([FATURA]);
+      (el.querySelector('.rp-categoria') as HTMLButtonElement).click();
+      fixture.detectChanges();
+    }
+
+    it('mostra a categoria do lembrete como selo com a cor dela', fakeAsync(() => {
+      abrir([FATURA]);
+
+      const selo = el.querySelector('.rp-card .rp-categoria') as HTMLElement;
+      expect(selo.textContent?.trim()).toBe('Casa');
+      expect(selo.style.getPropertyValue('--cor-categoria')).toBe('#FB8C00');
+    }));
+
+    it('o selo abre o gerenciador com todas as categorias', fakeAsync(() => {
+      abrirGerenciador();
+
+      expect(el.querySelector('.rp-panel--categorias')).toBeTruthy();
+      expect(el.querySelectorAll('.rp-cat').length).toBe(CATEGORIAS.length);
+    }));
+
+    it('cria categoria e relista categorias E lembretes', fakeAsync(() => {
+      abrirGerenciador();
+
+      const campo = el.querySelector('.rp-cat-nova .rp-input') as HTMLInputElement;
+      campo.value = 'Financeiro';
+      campo.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      (el.querySelector('.rp-cat-nova__add') as HTMLButtonElement).click();
+
+      const post = http.expectOne(req => req.method === 'POST' && req.url === `${API_V1}/categoria`);
+      expect(post.request.body).toEqual({ nome: 'Financeiro', cor: jasmine.any(String) });
+      post.flush({ id: 9, nome: 'Financeiro', cor: '#43A047', fatorOrdem: 6 });
+      tick();
+
+      // Relista em série: o GET /lembrete só sai depois que o /categoria resolve.
+      // O lembrete carrega uma cópia da categoria — sem isso o card fica velho.
+      http.expectOne(req => req.url === `${API_V1}/categoria`).flush(CATEGORIAS);
+      tick();
+      http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([FATURA]);
+      tick();
+    }));
+
+    it('edita categoria com PUT no id certo', fakeAsync(() => {
+      abrirGerenciador();
+
+      (el.querySelector('.rp-acao--editar.rp-acao--pequena') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      const campo = el.querySelector('.rp-cat__campo') as HTMLInputElement;
+      expect(campo.value).withContext('preenchido com o nome atual').toBe('Saúde');
+      campo.value = 'Bem-estar';
+      campo.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      (el.querySelector('.rp-cat--editando .rp-acao--confirmar') as HTMLButtonElement).click();
+
+      const put = http.expectOne(req => req.method === 'PUT');
+      expect(put.request.url).toBe(`${API_V1}/categoria/1`);
+      expect(put.request.body.nome).toBe('Bem-estar');
+      put.flush({ id: 1, nome: 'Bem-estar', cor: '#43A047', fatorOrdem: 1 });
+      tick();
+      http.expectOne(req => req.url === `${API_V1}/categoria`).flush(CATEGORIAS);
+      tick();
+      http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([FATURA]);
+      tick();
+    }));
+
+    it('mostra o 422 do servidor quando a categoria ainda tem lembretes', fakeAsync(() => {
+      abrirGerenciador();
+
+      (el.querySelector('.rp-acao--excluir.rp-acao--pequena') as HTMLButtonElement).click();
+
+      http.expectOne(req => req.method === 'DELETE').flush(
+        {
+          status: 422,
+          mensagem: 'Não foi possível concluir a exclusão dessa categoria. Ainda restam lembretes associados',
+        },
+        { status: 422, statusText: 'Unprocessable Entity' },
+      );
+      tick();
+      fixture.detectChanges();
+
+      expect(el.querySelector('.rp-panel--categorias .rp-form__erro')?.textContent)
+        .toContain('Ainda restam lembretes');
+    }));
+
+    it('explica o 401 de produção em vez de dar erro genérico', fakeAsync(() => {
+      abrirGerenciador();
+
+      const campo = el.querySelector('.rp-cat-nova .rp-input') as HTMLInputElement;
+      campo.value = 'Financeiro';
+      campo.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      (el.querySelector('.rp-cat-nova__add') as HTMLButtonElement).click();
+
+      http.expectOne(req => req.method === 'POST' && req.url === `${API_V1}/categoria`)
+        .flush({ status: 401 }, { status: 401, statusText: 'Unauthorized' });
+      tick();
+      fixture.detectChanges();
+
+      const erro = el.querySelector('.rp-panel--categorias .rp-form__erro')?.textContent ?? '';
+      expect(erro).toContain('login');
+      expect(erro).toContain('401');
+    }));
+
+    it('a falha da categoria não vaza para o alerta da tela principal', fakeAsync(() => {
+      abrirGerenciador();
+
+      (el.querySelector('.rp-acao--excluir.rp-acao--pequena') as HTMLButtonElement).click();
+      http.expectOne(req => req.method === 'DELETE')
+        .flush({ status: 422, mensagem: 'em uso' }, { status: 422, statusText: 'Unprocessable Entity' });
+      tick();
+      fixture.detectChanges();
+
+      expect(el.querySelector('.rp-alerta')).withContext('alerta global limpo').toBeNull();
+    }));
+  });
+
   it('exclui pelo detalhe, fecha o painel e relista', fakeAsync(() => {
     abrir([AGUA, FATURA]);
 
-    (el.querySelector('.rp-card') as HTMLButtonElement).click();
+    (el.querySelector('.rp-cta') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     (el.querySelector('.rp-acao--excluir') as HTMLButtonElement).click();

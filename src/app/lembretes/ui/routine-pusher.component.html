@@ -102,20 +102,25 @@
           <div class="rp-viewport">
             <div class="rp-track" [style.transform]="trackShift()">
               @for (card of cards(); track card.id) {
-                <button
-                  type="button"
-                  class="rp-card"
-                  [class.rp-card--feito]="card.concluido"
-                  (click)="abrirDetalhe(card.id)">
+                <!-- O card deixou de ser <button> para o selo de categoria poder
+                     ser clicável: <button> dentro de <button> é inválido. Quem
+                     abre o detalhe agora é o CTA do rodapé. -->
+                <div class="rp-card" [class.rp-card--feito]="card.concluido">
                   <div class="rp-card__head">
-                    <span class="rp-card__label">{{ card.label }}</span>
+                    <div class="rp-card__titulo">
+                      <span class="rp-card__label">{{ card.label }}</span>
+                      <button
+                        type="button"
+                        class="rp-categoria"
+                        [style.--cor-categoria]="card.cor"
+                        (click)="abrirCategorias()"
+                        [attr.aria-label]="'categoria ' + card.categoria + ' — gerenciar categorias'"
+                        title="gerenciar categorias">
+                        <span class="rp-categoria__ponto"></span>
+                        {{ card.categoria }}
+                      </button>
+                    </div>
                     <span class="rp-card__meta">
-                      <span
-                        class="rp-badge"
-                        [class.rp-badge--none]="card.noCron"
-                        [class.rp-badge--solid]="!card.noCron">
-                        {{ card.cron }}
-                      </span>
                       <span class="rp-mono rp-muted">{{ card.resumo }}</span>
                     </span>
                   </div>
@@ -140,14 +145,14 @@
                       <span class="rp-mono rp-muted-2">{{ card.spanNote }}</span>
                     </div>
 
-                    <div class="rp-cta">
+                    <button type="button" class="rp-cta" (click)="abrirDetalhe(card.id)">
                       ver as próximas {{ occurrenceCount() }} execuções
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                         <path d="M5 12h13M13 6.5l5.5 5.5L13 17.5"></path>
                       </svg>
-                    </div>
+                    </button>
                   </div>
-                </button>
+                </div>
               }
             </div>
           </div>
@@ -345,8 +350,17 @@
         <div class="rp-panel__title">
           <span class="rp-label">próximas {{ occurrenceCount() }} execuções</span>
           <span class="rp-panel__name">{{ alvo.titulo }}</span>
-          <span class="rp-mono rp-muted rp-panel__sub">
-            {{ alvo.categoria.nome }} · {{ detalheResumo() }}
+          <span class="rp-panel__sub">
+            <button
+              type="button"
+              class="rp-categoria"
+              [style.--cor-categoria]="alvo.categoria.cor"
+              (click)="abrirCategorias()"
+              title="gerenciar categorias">
+              <span class="rp-categoria__ponto"></span>
+              {{ alvo.categoria.nome }}
+            </button>
+            <span class="rp-mono rp-muted">{{ detalheResumo() }}</span>
           </span>
         </div>
         <button type="button" class="rp-close" (click)="fecharDetalhe()" aria-label="fechar">
@@ -601,6 +615,141 @@
         </button>
         <button type="button" class="rp-secondary rp-mono" (click)="fecharFormulario()">cancelar</button>
       </div>
+    </div>
+  </div>
+}
+
+@if (categoriasAberto()) {
+  <div class="rp-overlay" [class.rp-overlay--sheet]="isMobile()" (click)="fecharCategorias()">
+    <div
+      class="rp-panel rp-panel--categorias"
+      [class.rp-panel--sheet]="isMobile()"
+      role="dialog"
+      aria-modal="true"
+      aria-label="gerenciar categorias"
+      (click)="$event.stopPropagation()">
+      <div class="rp-panel__head">
+        <div class="rp-panel__title">
+          <span class="rp-label">categorias</span>
+          <span class="rp-panel__name">{{ categorias().length }} no total</span>
+        </div>
+        <button type="button" class="rp-close" (click)="fecharCategorias()" aria-label="fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M6 6l12 12M18 6L6 18"></path>
+          </svg>
+        </button>
+      </div>
+
+      <ul class="rp-cats">
+        @for (c of categorias(); track c.id) {
+          <li class="rp-cat" [class.rp-cat--editando]="catEditandoId() === c.id">
+            @if (catEditandoId() === c.id) {
+              <span class="rp-cat__cores">
+                @for (cor of CORES; track cor) {
+                  <button
+                    type="button"
+                    class="rp-cor"
+                    [class.rp-cor--ativa]="catCor() === cor"
+                    [style.background]="cor"
+                    (click)="catCor.set(cor)"
+                    [attr.aria-label]="'usar a cor ' + cor"></button>
+                }
+              </span>
+              <input
+                type="text"
+                class="rp-input rp-cat__campo"
+                [value]="catNome()"
+                (input)="catNome.set($any($event.target).value)"
+                (keydown.enter)="salvarCategoria()"
+                aria-label="nome da categoria" />
+              <span class="rp-cat__acoes">
+                <button
+                  type="button"
+                  class="rp-acao rp-acao--confirmar rp-acao--pequena"
+                  [disabled]="salvandoCategoria() || !catNome().trim()"
+                  (click)="salvarCategoria()"
+                  aria-label="salvar categoria">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12.5l4.5 4.5L19 7.5"></path>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="rp-acao rp-acao--pequena"
+                  (click)="cancelarEdicaoCategoria()"
+                  aria-label="cancelar edição">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                    <path d="M7 7l10 10M17 7L7 17"></path>
+                  </svg>
+                </button>
+              </span>
+            } @else {
+              <span class="rp-cat__cor" [style.background]="c.cor"></span>
+              <span class="rp-cat__nome">{{ c.nome }}</span>
+              <span class="rp-cat__acoes">
+                <button
+                  type="button"
+                  class="rp-acao rp-acao--editar rp-acao--pequena"
+                  (click)="editarCategoria(c)"
+                  [attr.aria-label]="'editar ' + c.nome">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"></path>
+                    <path d="M14.5 6.5l3 3"></path>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="rp-acao rp-acao--excluir rp-acao--pequena"
+                  [disabled]="salvandoCategoria()"
+                  (click)="excluirCategoria(c.id)"
+                  [attr.aria-label]="'excluir ' + c.nome">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                    <path d="M7 7l10 10M17 7L7 17"></path>
+                  </svg>
+                </button>
+              </span>
+            }
+          </li>
+        }
+      </ul>
+
+      @if (!catEditandoId()) {
+        <div class="rp-cat-nova">
+          <span class="rp-label">nova categoria</span>
+          <span class="rp-cat__cores">
+            @for (cor of CORES; track cor) {
+              <button
+                type="button"
+                class="rp-cor"
+                [class.rp-cor--ativa]="catCor() === cor"
+                [style.background]="cor"
+                (click)="catCor.set(cor)"
+                [attr.aria-label]="'usar a cor ' + cor"></button>
+            }
+          </span>
+          <div class="rp-cat-nova__linha">
+            <input
+              type="text"
+              class="rp-input"
+              [value]="catNome()"
+              (input)="catNome.set($any($event.target).value)"
+              (keydown.enter)="salvarCategoria()"
+              placeholder="ex.: Financeiro"
+              aria-label="nome da nova categoria" />
+            <button
+              type="button"
+              class="rp-primary rp-cat-nova__add"
+              [disabled]="salvandoCategoria() || !catNome().trim()"
+              (click)="salvarCategoria()">
+              {{ salvandoCategoria() ? 'salvando…' : 'adicionar' }}
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (falhaCategoria(); as f) {
+        <p class="rp-form__erro rp-mono" role="alert">{{ f.mensagem }}</p>
+      }
     </div>
   </div>
 }
