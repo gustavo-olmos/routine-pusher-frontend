@@ -46,9 +46,6 @@ export class LembretesStore {
   readonly falha = signal<Falha | null>(null);
   readonly convite = signal<Convite | null>(null);
 
-  /** uuid do último lembrete criado, para a tela focar nele. */
-  readonly recemCriado = signal<string | null>(null);
-
   /**
    * Contagem local de chamadas de IA. É só uma dica para a interface avisar
    * antes de bater na parede — quem decide de verdade é o 429 do servidor.
@@ -183,7 +180,6 @@ export class LembretesStore {
       // Relista em vez de dar push: a ordenação é do servidor, e emular a regra
       // aqui é a receita para a lista pular de posição no próximo refresh.
       await this.recarregar();
-      this.recemCriado.set(resultado.uuid);
       aoConcluir(resultado);
       return resultado;
     } catch (erro) {

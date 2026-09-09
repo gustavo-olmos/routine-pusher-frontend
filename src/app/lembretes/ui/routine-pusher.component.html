@@ -146,7 +146,9 @@
                     </div>
 
                     <button type="button" class="rp-cta" (click)="abrirDetalhe(card.id)">
-                      ver as próximas {{ occurrenceCount() }} execuções
+                      {{ card.concluido
+                          ? 'ver detalhes deste lembrete'
+                          : 'ver as próximas ' + occurrenceCount() + ' execuções' }}
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                         <path d="M5 12h13M13 6.5l5.5 5.5L13 17.5"></path>
                       </svg>
@@ -353,7 +355,11 @@
       (click)="$event.stopPropagation()">
       <div class="rp-panel__head">
         <div class="rp-panel__title">
-          <span class="rp-label">próximas {{ occurrenceCount() }} execuções</span>
+          <span class="rp-label">
+            {{ alvo.status === 'CONCLUIDO'
+                ? 'lembrete concluído'
+                : 'próximas ' + occurrenceCount() + ' execuções' }}
+          </span>
           <span class="rp-panel__name">{{ alvo.titulo }}</span>
           <span class="rp-panel__sub">
             <button
@@ -391,7 +397,14 @@
           </li>
         } @empty {
           <li class="rp-occurrence rp-occurrence--vazia">
-            <span class="rp-mono rp-muted">o servidor não previu execuções para esta regra</span>
+            <!-- Concluído vem com proximasExecucoes vazio. Dizer "não previu
+                 execuções para esta regra" acusaria a recorrência de um defeito
+                 que ela não tem. -->
+            <span class="rp-mono rp-muted">
+              {{ alvo.status === 'CONCLUIDO'
+                  ? 'concluído — este lembrete não dispara mais'
+                  : 'o servidor não previu execuções para esta regra' }}
+            </span>
           </li>
         }
       </ol>
@@ -408,16 +421,18 @@
             <path d="M14.5 6.5l3 3"></path>
           </svg>
         </button>
-        <button
-          type="button"
-          class="rp-acao rp-acao--confirmar"
-          (click)="confirmarDatas()"
-          aria-label="confirmar: são estas as datas que eu queria"
-          title="são estas as datas">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M5 12.5l4.5 4.5L19 7.5"></path>
-          </svg>
-        </button>
+        @if (execucoes().length) {
+          <button
+            type="button"
+            class="rp-acao rp-acao--confirmar"
+            (click)="confirmarDatas()"
+            aria-label="confirmar: são estas as datas que eu queria"
+            title="são estas as datas">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12.5l4.5 4.5L19 7.5"></path>
+            </svg>
+          </button>
+        }
         <button
           type="button"
           class="rp-acao rp-acao--excluir"
@@ -526,10 +541,10 @@
             <p class="rp-form__nota rp-mono">
               o primeiro disparo sai daqui a {{ fPasso() }} {{ fUnidade() }} — quem soma o
               intervalo é o servidor.
-              @if (fUnidade() === 'minutos') {
-                <br />o mínimo aceito é {{ INTERVALO_MINIMO }} minutos.
-              }
             </p>
+            @if (impedimento(); as erro) {
+              <p class="rp-campo__erro rp-mono" role="alert">{{ erro }}</p>
+            }
           }
           @case ('semana') {
             <div class="rp-campo">
@@ -619,7 +634,11 @@
       </div>
 
       <div class="rp-panel__actions">
-        <button type="button" class="rp-primary" [disabled]="enviando()" (click)="salvarFormulario()">
+        <button
+          type="button"
+          class="rp-primary"
+          [disabled]="enviando() || !!impedimento()"
+          (click)="salvarFormulario()">
           {{ enviando()
               ? (editandoId() ? 'salvando…' : 'criando…')
               : editandoId()

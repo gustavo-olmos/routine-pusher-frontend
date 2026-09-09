@@ -650,6 +650,74 @@ describe('RoutinePusherComponent', () => {
     }));
   });
 
+  describe('lembrete concluído', () => {
+    // Concluído passou a vir com proximasExecucoes vazio. Os textos da tela
+    // foram escritos quando isso nunca acontecia.
+    const FEITO: Lembrete = {
+      ...FATURA,
+      status: 'CONCLUIDO',
+      proximasExecucoes: [],
+      notificacao: { ...FATURA.notificacao, proximaExecucao: null },
+    };
+
+    it('o card não promete execuções que não existem', fakeAsync(() => {
+      abrir([FEITO]);
+
+      const cta = el.querySelector('.rp-cta')?.textContent ?? '';
+      expect(cta).not.toContain('próximas');
+      expect(el.querySelector('.rp-next__value')?.textContent).toContain('não dispara mais');
+    }));
+
+    it('o painel culpa o status, não a regra de recorrência', fakeAsync(() => {
+      abrir([FEITO]);
+      (el.querySelector('.rp-cta') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(el.querySelector('.rp-panel .rp-label')?.textContent?.trim())
+        .toBe('lembrete concluído');
+      const vazio = el.querySelector('.rp-occurrence--vazia')?.textContent ?? '';
+      expect(vazio).toContain('não dispara mais');
+      expect(vazio).withContext('a recorrência não tem defeito').not.toContain('não previu');
+    }));
+
+    it('sem datas, o ✓ de "aceito estas datas" não aparece', fakeAsync(() => {
+      abrir([FEITO]);
+      (el.querySelector('.rp-cta') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(el.querySelector('.rp-acao--confirmar')).toBeNull();
+      // Editar e excluir continuam fazendo sentido.
+      expect(el.querySelector('.rp-acao--editar')).toBeTruthy();
+      expect(el.querySelector('.rp-acao--excluir')).toBeTruthy();
+    }));
+  });
+
+  it('recusa intervalo abaixo do mínimo em vez de corrigir em silêncio', fakeAsync(() => {
+    abrir([AGUA]);
+    (el.querySelector('.rp-examples .rp-reset') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    // "a cada" -> minutos -> 1
+    const ops = el.querySelectorAll('.rp-segmento__op');
+    (ops[ops.length - 1] as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const unidade = el.querySelector('.rp-campo--linha select.rp-input') as HTMLSelectElement;
+    unidade.value = 'minutos';
+    unidade.dispatchEvent(new Event('change'));
+    const passo = el.querySelector('.rp-input--curto') as HTMLInputElement;
+    passo.value = '1';
+    passo.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(el.querySelector('.rp-form .rp-campo__erro')?.textContent).toContain('mínimo');
+    const salvar = el.querySelector('.rp-panel--form .rp-primary') as HTMLButtonElement;
+    expect(salvar.disabled).withContext('salvar bloqueado').toBeTrue();
+
+    salvar.click();
+    // Nenhuma requisição: o http.verify() do afterEach reprovaria um POST aqui.
+  }));
+
   it('exclui pelo detalhe, fecha o painel e relista', fakeAsync(() => {
     abrir([AGUA, FATURA]);
 

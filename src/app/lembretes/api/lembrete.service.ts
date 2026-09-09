@@ -37,6 +37,7 @@ export class SessaoService {
     return this.http.get<Sessao>(`${API_V1}/sessao`);
   }
 
+  /** Apaga sessão, lembretes e agendamentos. Responde 204 sem corpo. */
   encerrar(): Observable<unknown> {
     return this.http.delete(`${API_V1}/sessao`, { responseType: 'text' });
   }

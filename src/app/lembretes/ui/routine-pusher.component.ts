@@ -67,7 +67,6 @@ interface CardVm {
   cor: string;
   categoria: string;
   concluido: boolean;
-  completedNote: string;
   nextLine: string;
   spanNote: string;
   ticks: Marca[];
@@ -201,7 +200,6 @@ export class RoutinePusherComponent implements OnInit {
         cor: l.categoria?.cor ?? 'currentColor',
         categoria: l.categoria?.nome ?? '',
         concluido: l.status === 'CONCLUIDO',
-        completedNote: l.status === 'CONCLUIDO' ? 'concluído' : 'pendente',
         // Concluído passou a vir com proximasExecucoes vazio; a lista vazia já é
         // a verdade, mas o motivo dela muda o texto.
         nextLine: temDatas
@@ -250,6 +248,21 @@ export class RoutinePusherComponent implements OnInit {
   protected readonly vaiReabrir = computed(
     () => this.vaiReagendar() && this.selected()?.status === 'CONCLUIDO',
   );
+
+  /**
+   * O que impede salvar, em texto — vazio quando está tudo certo.
+   *
+   * O domínio ainda eleva um intervalo curto para o mínimo, mas isso é rede de
+   * segurança: mudar o valor do usuário sem avisar é o mesmo defeito que
+   * reescrever a política de feriado em silêncio. Aqui a tela recusa e explica.
+   */
+  protected readonly impedimento = computed(() => {
+    if (this.fEstrategia() !== 'intervalo' || this.fUnidade() !== 'minutos') return '';
+    const passo = Number(this.fPasso());
+    return Number.isFinite(passo) && passo >= INTERVALO_MINIMO_MINUTOS
+      ? ''
+      : `o intervalo mínimo é de ${INTERVALO_MINIMO_MINUTOS} minutos`;
+  });
 
   protected readonly animation = computed(() => (this.tick() % 2 === 0 ? 'rpRiseA' : 'rpRiseB'));
 
@@ -395,7 +408,7 @@ export class RoutinePusherComponent implements OnInit {
    * agendamento mudou, porque ele recalcula os disparos e reabre concluídos.
    */
   protected async salvarFormulario(): Promise<void> {
-    if (this.enviando()) return;
+    if (this.enviando() || this.impedimento()) return;
 
     const estado = this.estadoAtual();
     const emEdicao = this.editandoId();
@@ -412,11 +425,6 @@ export class RoutinePusherComponent implements OnInit {
     if (!salvo) return;
     this.fecharFormulario();
     this.select(salvo.uuid);
-  }
-
-  /** Corpo que seria enviado agora — a conversão em si mora no domínio. */
-  protected montarEntrada() {
-    return paraEntrada(this.estadoAtual());
   }
 
   private estadoAtual(): EstadoFormulario {
