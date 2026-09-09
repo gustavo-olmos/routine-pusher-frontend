@@ -22,19 +22,6 @@ export interface Categoria {
   fatorOrdem: number;
 }
 
-/** Corpo de POST/PUT de categoria. `nome` e `cor` são obrigatórios; `fatorOrdem` não. */
-export interface CategoriaEntrada {
-  nome: string;
-  cor: string;
-  fatorOrdem?: number | null;
-}
-
-/** Paleta sugerida — as cores das categorias originais do backend. */
-export const CORES_CATEGORIA: readonly string[] = [
-  '#43A047', '#1E88E5', '#FB8C00', '#8E24AA', '#546E7A',
-  '#00897B', '#E53935', '#6D4C41', '#3949AB', '#C0CA33',
-];
-
 /**
  * Como o lembrete se repete. Escolha UMA estratégia — os intervalos moram aqui,
  * não em `notificacao`, e misturar dois eixos é o caminho mais curto para o 422.
@@ -47,6 +34,7 @@ export interface Recorrencia {
   quantidade: number | null;
   intervaloDias: number | null;
   intervaloHoras: number | null;
+  /** Mínimo aceito: 5. Abaixo disso o servidor devolve 422. */
   intervaloMinutos: number | null;
   /** 1..5, combinada com `diasDaSemana`: "2ª segunda do mês". */
   posicaoDaSemanaNoMes: number | null;
@@ -62,6 +50,7 @@ export interface Notificacao {
   metodo: string[];
   /** "HH:mm", para recorrência de calendário. */
   horario: string | null;
+  /** `null` quando o lembrete está CONCLUIDO — ele não dispara mais. */
   proximaExecucao?: string | null;
   ultimaExecucao?: string | null;
   /**
@@ -71,6 +60,17 @@ export interface Notificacao {
   dataInicio: string | null;
   dataFim: string | null;
   datasEspecificadas: string[] | null;
+}
+
+/**
+ * Corpo do `PATCH /lembrete/{uuid}/detalhes`: corrige texto ou troca categoria
+ * **sem tocar no agendamento**. Não reabre lembrete concluído nem move o próximo
+ * disparo — ao contrário do `PUT`, que reagenda e devolve CONCLUIDO a PENDENTE.
+ */
+export interface DetalhesEntrada {
+  titulo: string;
+  descricao?: string | null;
+  categoriaId: number;
 }
 
 /** Corpo de POST/PUT. Repare: manda `categoriaId`, recebe `categoria`. */
@@ -90,7 +90,10 @@ export interface Lembrete {
   categoria: Categoria;
   recorrencia: Recorrencia;
   notificacao: Notificacao;
-  /** Já calculado pelo servidor — a fonte das datas na tela. */
+  /**
+   * Já calculado pelo servidor — a fonte das datas na tela. Vem **vazio** quando
+   * `status` é CONCLUIDO: o lembrete não dispara mais.
+   */
   proximasExecucoes: string[] | null;
 }
 

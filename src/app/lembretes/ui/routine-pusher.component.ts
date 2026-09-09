@@ -11,8 +11,6 @@ import {
 
 import { resumoDosCampos } from '../api/erros';
 import {
-  CORES_CATEGORIA,
-  Categoria,
   DIAS_SEMANA,
   DiaSemana,
   Lembrete,
@@ -25,6 +23,8 @@ import {
   EstadoFormulario,
   FORMULARIO_VAZIO,
   Unidade,
+  mudouAgendamento,
+  paraDetalhes,
   paraEntrada,
   paraFormulario,
 } from '../dominio/formulario';
@@ -41,7 +41,9 @@ import {
 import { LembretesStore } from '../estado/lembretes.store';
 import { FunilService, OrigemSaida } from '../funil/funil.service';
 import {
+  INTERVALO_MINIMO_MINUTOS,
   LIMITE_LEMBRETES,
+  SESSAO_HORAS,
   MAX_DESCRICAO,
   MAX_FRASE,
   MAX_TITULO,
@@ -109,7 +111,8 @@ export class RoutinePusherComponent implements OnInit {
   protected readonly MAX_TITULO = MAX_TITULO;
   protected readonly MAX_DESCRICAO = MAX_DESCRICAO;
   protected readonly SIMULADOR_URL = SIMULADOR_URL;
-  protected readonly CORES = CORES_CATEGORIA;
+  protected readonly INTERVALO_MINIMO = INTERVALO_MINIMO_MINUTOS;
+  protected readonly SESSAO_HORAS = SESSAO_HORAS;
 
   protected readonly lembretes = this.store.lembretes;
   protected readonly categorias = this.store.categorias;
@@ -121,8 +124,6 @@ export class RoutinePusherComponent implements OnInit {
   protected readonly noLimite = this.store.noLimite;
   protected readonly restantes = this.store.restantes;
   protected readonly avisos = this.notificacoes.avisos;
-  protected readonly falhaCategoria = this.store.falhaCategoria;
-  protected readonly salvandoCategoria = this.store.salvandoCategoria;
 
   /**
    * Escolha explícita do visitante, ou `null` enquanto ele não tocar no botão.
@@ -140,13 +141,11 @@ export class RoutinePusherComponent implements OnInit {
   protected readonly formAberto = signal(false);
   /** uuid em edição, ou null quando o formulário está criando. */
   protected readonly editandoId = signal<string | null>(null);
+  /** Estado do formulário como ele abriu, para saber o que o usuário mexeu. */
+  private readonly estadoOriginal = signal<EstadoFormulario | null>(null);
 
-  // ---- gerenciador de categorias -------------------------------------------
+  /** As categorias são fixas no servidor; o painel só as lista. */
   protected readonly categoriasAberto = signal(false);
-  /** id da categoria em edição inline, ou null. */
-  protected readonly catEditandoId = signal<number | null>(null);
-  protected readonly catNome = signal('');
-  protected readonly catCor = signal(CORES_CATEGORIA[0]);
   protected readonly isMobile = signal(
     typeof window !== 'undefined' ? window.innerWidth < 640 : false,
   );
@@ -203,9 +202,13 @@ export class RoutinePusherComponent implements OnInit {
         categoria: l.categoria?.nome ?? '',
         concluido: l.status === 'CONCLUIDO',
         completedNote: l.status === 'CONCLUIDO' ? 'concluído' : 'pendente',
+        // Concluído passou a vir com proximasExecucoes vazio; a lista vazia já é
+        // a verdade, mas o motivo dela muda o texto.
         nextLine: temDatas
           ? `${dataCurta(datas[0])} · ${diaSemanaCurto(datas[0])}`
-          : 'sem data prevista',
+          : l.status === 'CONCLUIDO'
+            ? 'concluído — não dispara mais'
+            : 'sem data prevista',
         spanNote: temDatas ? `· janela de ${diffDias(datas[datas.length - 1], agora)} dias` : '',
         ticks: this.montarMarcas(datas),
       };
@@ -233,6 +236,20 @@ export class RoutinePusherComponent implements OnInit {
     const especificadas = alvo.notificacao?.datasEspecificadas?.length ?? 0;
     return resumoRecorrencia(alvo.recorrencia, alvo.notificacao?.horario, especificadas);
   });
+
+  /**
+   * A edição vai reagendar? Reativo, para o aviso aparecer enquanto o usuário
+   * mexe, e não só depois de salvar.
+   */
+  protected readonly vaiReagendar = computed(() => {
+    const original = this.estadoOriginal();
+    return !!original && !!this.editandoId() && mudouAgendamento(original, this.estadoAtual());
+  });
+
+  /** Reagendar devolve um lembrete concluído para pendente — vale avisar. */
+  protected readonly vaiReabrir = computed(
+    () => this.vaiReagendar() && this.selected()?.status === 'CONCLUIDO',
+  );
 
   protected readonly animation = computed(() => (this.tick() % 2 === 0 ? 'rpRiseA' : 'rpRiseB'));
 
@@ -341,10 +358,9 @@ export class RoutinePusherComponent implements OnInit {
     if (this.noLimite()) return;
     this.store.limparFalha();
     this.editandoId.set(null);
-    this.aplicarEstado({
-      ...FORMULARIO_VAZIO,
-      categoriaId: this.categorias()[0]?.id ?? null,
-    });
+    const inicial = { ...FORMULARIO_VAZIO, categoriaId: this.categorias()[0]?.id ?? null };
+    this.aplicarEstado(inicial);
+    this.estadoOriginal.set(null);
     this.formAberto.set(true);
   }
 
@@ -354,7 +370,9 @@ export class RoutinePusherComponent implements OnInit {
     if (!alvo) return;
     this.store.limparFalha();
     this.editandoId.set(alvo.uuid);
-    this.aplicarEstado(paraFormulario(alvo));
+    const original = paraFormulario(alvo);
+    this.aplicarEstado(original);
+    this.estadoOriginal.set(original);
     this.open.set(false);
     this.formAberto.set(true);
   }
@@ -362,6 +380,7 @@ export class RoutinePusherComponent implements OnInit {
   protected fecharFormulario(): void {
     this.formAberto.set(false);
     this.editandoId.set(null);
+    this.estadoOriginal.set(null);
   }
 
   protected alternarDia(dia: DiaSemana): void {
@@ -370,18 +389,28 @@ export class RoutinePusherComponent implements OnInit {
     );
   }
 
+  /**
+   * Escolhe o verbo pelo que mudou: mexer só em texto ou categoria vai de
+   * `PATCH /detalhes`, que preserva a série e o status. `PUT` só quando o
+   * agendamento mudou, porque ele recalcula os disparos e reabre concluídos.
+   */
   protected async salvarFormulario(): Promise<void> {
     if (this.enviando()) return;
 
-    const entrada = paraEntrada(this.estadoAtual());
+    const estado = this.estadoAtual();
     const emEdicao = this.editandoId();
-    const salvo = emEdicao
-      ? await this.store.atualizar(emEdicao, entrada)
-      : await this.store.criarPorFormulario(entrada);
+    let salvo: Lembrete | null;
+
+    if (!emEdicao) {
+      salvo = await this.store.criarPorFormulario(paraEntrada(estado));
+    } else if (this.vaiReagendar()) {
+      salvo = await this.store.atualizar(emEdicao, paraEntrada(estado));
+    } else {
+      salvo = await this.store.atualizarDetalhes(emEdicao, paraDetalhes(estado));
+    }
 
     if (!salvo) return;
-    this.formAberto.set(false);
-    this.editandoId.set(null);
+    this.fecharFormulario();
     this.select(salvo.uuid);
   }
 
@@ -440,45 +469,11 @@ export class RoutinePusherComponent implements OnInit {
   // ---- categorias ----------------------------------------------------------
 
   protected abrirCategorias(): void {
-    this.store.limparFalhaCategoria();
-    this.cancelarEdicaoCategoria();
     this.categoriasAberto.set(true);
   }
 
   protected fecharCategorias(): void {
     this.categoriasAberto.set(false);
-    this.cancelarEdicaoCategoria();
-  }
-
-  /** Entra no modo de edição inline de uma categoria da lista. */
-  protected editarCategoria(categoria: Categoria): void {
-    this.store.limparFalhaCategoria();
-    this.catEditandoId.set(categoria.id);
-    this.catNome.set(categoria.nome);
-    this.catCor.set(categoria.cor);
-  }
-
-  protected cancelarEdicaoCategoria(): void {
-    this.catEditandoId.set(null);
-    this.catNome.set('');
-    this.catCor.set(CORES_CATEGORIA[0]);
-  }
-
-  protected async salvarCategoria(): Promise<void> {
-    const nome = this.catNome().trim();
-    if (!nome) return;
-
-    const entrada = { nome, cor: this.catCor() };
-    const emEdicao = this.catEditandoId();
-    const ok = emEdicao
-      ? await this.store.atualizarCategoria(emEdicao, entrada)
-      : await this.store.criarCategoria(entrada);
-
-    if (ok) this.cancelarEdicaoCategoria();
-  }
-
-  protected async excluirCategoria(id: number): Promise<void> {
-    await this.store.excluirCategoria(id);
   }
 
   protected dispensarConvite(): void {

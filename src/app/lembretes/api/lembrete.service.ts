@@ -6,7 +6,7 @@ import { API_V1 } from '../lembretes.config';
 import { agoraLocalIso } from '../dominio/datas';
 import {
   Categoria,
-  CategoriaEntrada,
+  DetalhesEntrada,
   FraseEntrada,
   Lembrete,
   LembreteEntrada,
@@ -14,9 +14,15 @@ import {
 } from './modelos';
 
 /**
- * `sortInfo` e `decrescente` são obrigatórios nas listagens — sem eles a resposta
- * é 400. E atenção ao valor: `sortInfo=id` funciona em /categoria mas devolve
- * 400 ("Erro ao comparar objetos: id") em /lembrete, cuja chave é `uuid`.
+ * `sortInfo` e `decrescente` são obrigatórios nas listagens; omitir dá 400.
+ *
+ * O valor é validado contra a lista de campos de cada rota, e um inválido devolve
+ * 400 dizendo quais servem:
+ * - /lembrete  -> uuid, titulo, descricao, status  (não aceita `id`: a chave
+ *   pública do lembrete é o uuid)
+ * - /categoria -> id, nome, cor, fatorOrdem
+ *
+ * Objetos aninhados (categoria, recorrencia, notificacao) não são ordenáveis.
  */
 function ordenacao(campo: string, decrescente = false): HttpParams {
   return new HttpParams().set('sortInfo', campo).set('decrescente', decrescente);
@@ -37,35 +43,16 @@ export class SessaoService {
 }
 
 /**
- * Categorias.
- *
- * Escrita funciona no backend local mas devolve **401 em produção**, onde
- * POST/PUT/DELETE exigem login. A interface precisa tratar isso como estado
- * esperado, não como erro genérico.
+ * Categorias: cenário fixo, semeado no banco e igual para todos os visitantes.
+ * A escrita (POST/PUT/DELETE) exige login e não está disponível — o front só lê.
  */
 @Injectable()
 export class CategoriaService {
   private readonly http = inject(HttpClient);
 
+  /** Por `fatorOrdem`: é o campo que o backend usa para a ordem de exibição. */
   listar(): Observable<Categoria[]> {
-    return this.http.get<Categoria[]>(`${API_V1}/categoria`, { params: ordenacao('id') });
-  }
-
-  criar(entrada: CategoriaEntrada): Observable<Categoria> {
-    return this.http.post<Categoria>(`${API_V1}/categoria`, entrada);
-  }
-
-  atualizar(id: number, entrada: CategoriaEntrada): Observable<Categoria> {
-    return this.http.put<Categoria>(`${API_V1}/categoria/${id}`, entrada);
-  }
-
-  /**
-   * Responde texto puro no sucesso, mas **422 com JSON** quando ainda há
-   * lembretes usando a categoria — daí o `responseType: 'text'` e o parse
-   * defensivo do erro em `normalizarFalha`.
-   */
-  excluir(id: number): Observable<unknown> {
-    return this.http.delete(`${API_V1}/categoria/${id}`, { responseType: 'text' });
+    return this.http.get<Categoria[]>(`${API_V1}/categoria`, { params: ordenacao('fatorOrdem') });
   }
 }
 
@@ -90,8 +77,18 @@ export class LembreteService {
     return this.http.post<Lembrete>(`${API_V1}/chat/lembrete`, corpo);
   }
 
+  /**
+   * Reagenda: recalcula a série e **reabre** um lembrete concluído
+   * (CONCLUIDO -> PENDENTE). Use só quando a recorrência, o horário ou as datas
+   * mudarem — para texto e categoria existe `atualizarDetalhes`.
+   */
   atualizar(uuid: string, entrada: LembreteEntrada): Observable<Lembrete> {
     return this.http.put<Lembrete>(`${API_V1}/lembrete/${uuid}`, entrada);
+  }
+
+  /** Edição leve: preserva agendamento e status. Devolve o lembrete completo. */
+  atualizarDetalhes(uuid: string, detalhes: DetalhesEntrada): Observable<Lembrete> {
+    return this.http.patch<Lembrete>(`${API_V1}/lembrete/${uuid}/detalhes`, detalhes);
   }
 
   /** Marca como concluído. Responde 200 com corpo vazio. */
@@ -99,7 +96,7 @@ export class LembreteService {
     return this.http.patch(`${API_V1}/lembrete/${uuid}`, null, { responseType: 'text' });
   }
 
-  /** Responde texto puro ("Lembrete excluído com sucesso!"), não JSON. */
+  /** Responde 204 sem corpo. `responseType: 'text'` cobre isso sem parse. */
   excluir(uuid: string): Observable<unknown> {
     return this.http.delete(`${API_V1}/lembrete/${uuid}`, { responseType: 'text' });
   }

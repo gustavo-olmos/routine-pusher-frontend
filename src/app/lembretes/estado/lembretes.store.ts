@@ -5,7 +5,7 @@ import { CategoriaService, LembreteService, SessaoService } from '../api/lembret
 import { Falha, normalizarFalha } from '../api/erros';
 import {
   Categoria,
-  CategoriaEntrada,
+  DetalhesEntrada,
   Lembrete,
   LembreteEntrada,
   Sessao,
@@ -44,9 +44,6 @@ export class LembretesStore {
   readonly carregando = signal(true);
   readonly enviando = signal(false);
   readonly falha = signal<Falha | null>(null);
-  /** Falha do gerenciador de categorias — separada para aparecer dentro do modal. */
-  readonly falhaCategoria = signal<Falha | null>(null);
-  readonly salvandoCategoria = signal(false);
   readonly convite = signal<Convite | null>(null);
 
   /** uuid do último lembrete criado, para a tela focar nele. */
@@ -118,13 +115,41 @@ export class LembretesStore {
   }
 
   /**
-   * Edição. O `PUT` exige o corpo completo — mandar só o campo alterado devolve
-   * 400 ("Failed to read request").
+   * Edição leve: título, descrição e categoria, sem tocar no agendamento.
+   *
+   * Substitui o lembrete em memória com a resposta em vez de relistar — o
+   * servidor devolve o objeto completo, e relistar só abriria uma janela
+   * mostrando estado velho.
+   */
+  async atualizarDetalhes(uuid: string, detalhes: DetalhesEntrada): Promise<Lembrete | null> {
+    if (this.enviando()) return null;
+    this.enviando.set(true);
+    this.falha.set(null);
+    try {
+      const alterado = await firstValueFrom(this.lembreteApi.atualizarDetalhes(uuid, detalhes));
+      this.lembretes.update(lista => lista.map(l => (l.uuid === uuid ? alterado : l)));
+      this.funil.registrar('lembrete_editado', { escopo: 'detalhes' });
+      return alterado;
+    } catch (erro) {
+      this.falha.set(normalizarFalha(erro));
+      return null;
+    } finally {
+      this.enviando.set(false);
+    }
+  }
+
+  /**
+   * Edição com reagendamento. O `PUT` exige o corpo completo — mandar só o campo
+   * alterado devolve 400 — e **reabre** um lembrete concluído.
    */
   async atualizar(uuid: string, entrada: LembreteEntrada): Promise<Lembrete | null> {
     return this.enviar(
       () => this.lembreteApi.atualizar(uuid, entrada),
-      alterado => this.funil.registrar('lembrete_editado', { categoria: alterado.categoria?.nome }),
+      alterado =>
+        this.funil.registrar('lembrete_editado', {
+          escopo: 'agendamento',
+          categoria: alterado.categoria?.nome,
+        }),
     );
   }
 
@@ -140,55 +165,12 @@ export class LembretesStore {
     this.falha.set(null);
   }
 
-  limparFalhaCategoria(): void {
-    this.falhaCategoria.set(null);
-  }
-
-  // ---- categorias ----------------------------------------------------------
-
-  async criarCategoria(entrada: CategoriaEntrada): Promise<boolean> {
-    return this.mutarCategoria(() => this.categoriaApi.criar(entrada), 'categoria_criada');
-  }
-
-  async atualizarCategoria(id: number, entrada: CategoriaEntrada): Promise<boolean> {
-    return this.mutarCategoria(() => this.categoriaApi.atualizar(id, entrada), 'categoria_editada');
-  }
-
-  /** O servidor recusa com 422 se ainda houver lembretes usando a categoria. */
-  async excluirCategoria(id: number): Promise<boolean> {
-    return this.mutarCategoria(() => this.categoriaApi.excluir(id), 'categoria_excluida');
-  }
-
-  private async mutarCategoria(
-    chamada: () => import('rxjs').Observable<unknown>,
-    evento: 'categoria_criada' | 'categoria_editada' | 'categoria_excluida',
-  ): Promise<boolean> {
-    if (this.salvandoCategoria()) return false;
-    this.salvandoCategoria.set(true);
-    this.falhaCategoria.set(null);
-    try {
-      await firstValueFrom(chamada());
-      // Relista os dois: o lembrete carrega uma cópia da categoria, então
-      // renomear ou recolorir precisa refletir nos cards também.
-      this.categorias.set(await firstValueFrom(this.categoriaApi.listar()));
-      await this.recarregar();
-      this.funil.registrar(evento);
-      return true;
-    } catch (erro) {
-      this.falhaCategoria.set(normalizarFalha(erro));
-      return false;
-    } finally {
-      this.salvandoCategoria.set(false);
-    }
-  }
-
   dispensarConvite(): void {
     const atual = this.convite();
     if (atual) this.funil.registrar('convite_simulador_dispensado', { motivo: atual.motivo });
     this.convite.set(null);
   }
 
-  /** Tronco comum de POST e PUT: trava reentrada, relista e trata a falha. */
   private async enviar(
     chamada: () => import('rxjs').Observable<Lembrete>,
     aoConcluir: (resultado: Lembrete) => void,

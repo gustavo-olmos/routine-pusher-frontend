@@ -1,10 +1,12 @@
 import {
+  DetalhesEntrada,
   DiaSemana,
   Lembrete,
   LembreteEntrada,
   PoliticaDiaUtil,
   RECORRENCIA_VAZIA,
 } from '../api/modelos';
+import { INTERVALO_MINIMO_MINUTOS } from '../lembretes.config';
 import { agoraLocalIso } from './datas';
 
 /**
@@ -109,8 +111,11 @@ export function paraFormulario(lembrete: Lembrete): EstadoFormulario {
  */
 export function paraEntrada(estado: EstadoFormulario): LembreteEntrada {
   const porIntervalo = estado.estrategia === 'intervalo';
-  const passo = Math.max(1, Number(estado.passo) || 1);
   const quantidade = Number(estado.quantidade);
+  // Abaixo de 5 minutos o servidor recusa com 422. O campo já limita, mas a
+  // trava mora aqui também para nenhum caminho escapar.
+  const minimo = estado.unidade === 'minutos' ? INTERVALO_MINIMO_MINUTOS : 1;
+  const passo = Math.max(minimo, Number(estado.passo) || minimo);
 
   return {
     titulo: estado.titulo.trim(),
@@ -150,3 +155,54 @@ function diasDoMes(texto: string): number[] {
     .filter(n => n >= 1 && n <= 31);
   return [...new Set(numeros)].sort((a, b) => a - b);
 }
+
+/** Corpo do PATCH de detalhes — o que dá para mudar sem reagendar nada. */
+export function paraDetalhes(estado: EstadoFormulario): DetalhesEntrada {
+  return {
+    titulo: estado.titulo.trim(),
+    descricao: estado.descricao.trim() || null,
+    categoriaId: estado.categoriaId as number,
+  };
+}
+
+/**
+ * Diz se a edição mexeu no agendamento.
+ *
+ * Existe para escolher o verbo certo: `PATCH /detalhes` preserva a série e o
+ * status, enquanto `PUT` recalcula os disparos e devolve um lembrete concluído
+ * para PENDENTE. Corrigir uma vírgula no título pelo `PUT` ressuscitaria o
+ * lembrete sem o usuário pedir.
+ */
+export function mudouAgendamento(antes: EstadoFormulario, depois: EstadoFormulario): boolean {
+  if (antes.estrategia !== depois.estrategia) return true;
+
+  switch (depois.estrategia) {
+    case 'intervalo':
+      if (antes.unidade !== depois.unidade) return true;
+      if (Number(antes.passo) !== Number(depois.passo)) return true;
+      break;
+    case 'semana':
+      // Comparado como conjunto: alternar um dia duas vezes muda a ordem do
+      // array sem mudar a regra.
+      if (chaveDias(antes.diasSemana) !== chaveDias(depois.diasSemana)) return true;
+      if (antes.posicaoMes !== depois.posicaoMes) return true;
+      break;
+    case 'mes':
+      if (chaveNumeros(antes.diasMes) !== chaveNumeros(depois.diasMes)) return true;
+      break;
+  }
+
+  if (depois.estrategia !== 'intervalo') {
+    if (antes.horario !== depois.horario) return true;
+    if (antes.politica !== depois.politica) return true;
+  }
+
+  return Number(antes.quantidade || 0) !== Number(depois.quantidade || 0);
+}
+
+const chaveDias = (dias: readonly DiaSemana[]): string => [...dias].sort().join(',');
+
+const chaveNumeros = (texto: string): string =>
+  [...new Set(texto.split(/[^0-9]+/).map(Number).filter(n => n >= 1 && n <= 31))]
+    .sort((a, b) => a - b)
+    .join(',');

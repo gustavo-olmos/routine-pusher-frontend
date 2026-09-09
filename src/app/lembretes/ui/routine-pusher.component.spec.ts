@@ -180,8 +180,9 @@ describe('RoutinePusherComponent', () => {
     const categoria = http.expectOne(req => req.url === `${API_V1}/categoria`);
     const lembrete = http.expectOne(req => req.url === `${API_V1}/lembrete`);
 
-    expect(categoria.request.params.get('sortInfo')).toBe('id');
-    // /lembrete com sortInfo=id devolve 400: o DTO tem uuid, não id.
+    // Campos aceitos por rota: /categoria -> id,nome,cor,fatorOrdem;
+    // /lembrete -> uuid,titulo,descricao,status. Qualquer outro dá 400.
+    expect(categoria.request.params.get('sortInfo')).toBe('fatorOrdem');
     expect(lembrete.request.params.get('sortInfo')).toBe('uuid');
     expect(lembrete.request.params.get('decrescente')).toBe('false');
 
@@ -504,15 +505,14 @@ describe('RoutinePusherComponent', () => {
       expect(select.selectedOptions[0].textContent?.trim()).toBe('Casa');
     }));
 
-    it('trava a categoria, porque o PUT do servidor ignora categoriaId', fakeAsync(() => {
+    it('deixa trocar a categoria — o servidor passou a aplicar categoriaId', fakeAsync(() => {
       abrirEdicao([FATURA]);
 
       const select = el.querySelector('.rp-form select.rp-input') as HTMLSelectElement;
-      expect(select.disabled).withContext('categoria travada na edição').toBeTrue();
-      expect(el.querySelector('.rp-campo__nota')?.textContent).toContain('não troca a categoria');
+      expect(select.disabled).withContext('campo liberado').toBeFalse();
     }));
 
-    it('salva com PUT no uuid certo, corpo completo, e relista', fakeAsync(() => {
+    it('mudar só o título vai de PATCH /detalhes, que preserva o agendamento', fakeAsync(() => {
       abrirEdicao([FATURA]);
 
       const titulo = el.querySelector('.rp-form .rp-input') as HTMLInputElement;
@@ -520,27 +520,71 @@ describe('RoutinePusherComponent', () => {
       titulo.dispatchEvent(new Event('input'));
       fixture.detectChanges();
 
+      // Nada de aviso: o agendamento não foi tocado.
+      expect(el.querySelector('.rp-form__aviso')).toBeNull();
+
       (el.querySelector('.rp-panel--form .rp-primary') as HTMLButtonElement).click();
 
-      const put = http.expectOne(req => req.method === 'PUT');
-      expect(put.request.url).toBe(`${API_V1}/lembrete/${FATURA.uuid}`);
-      expect(put.request.body.titulo).toBe('Fatura renegociada');
-      // Corpo completo: parcial devolve 400 "Failed to read request".
-      expect(put.request.body.recorrencia).toBeDefined();
-      expect(put.request.body.notificacao.metodo).toEqual(['pop-up']);
-      // A regra original tem de sobreviver a uma edição só de título.
-      expect(put.request.body.recorrencia.diasFixosNoMes).toEqual([10]);
-      expect(put.request.body.recorrencia.politicaDiaUtil).toBe('PULAR');
+      const patch = http.expectOne(req => req.method === 'PATCH');
+      expect(patch.request.url).toBe(`${API_V1}/lembrete/${FATURA.uuid}/detalhes`);
+      expect(patch.request.body).toEqual({
+        titulo: 'Fatura renegociada',
+        descricao: null,
+        categoriaId: 3,
+      });
+      // PUT reagendaria e reabriria um concluído — não pode sair daqui.
+      expect(patch.request.body.recorrencia).toBeUndefined();
 
-      put.flush({ ...FATURA, titulo: 'Fatura renegociada' });
-      tick();
-      http.expectOne(req => req.url === `${API_V1}/lembrete`)
-        .flush([{ ...FATURA, titulo: 'Fatura renegociada' }]);
+      // A resposta traz o lembrete completo: troca em memória, sem relistar.
+      patch.flush({ ...FATURA, titulo: 'Fatura renegociada' });
       tick();
       fixture.detectChanges();
 
       expect(el.querySelector('.rp-panel--form')).withContext('formulário fecha').toBeNull();
       expect(el.textContent).toContain('Fatura renegociada');
+    }));
+
+    it('mudar o agendamento vai de PUT, com corpo completo, e avisa antes', fakeAsync(() => {
+      abrirEdicao([FATURA]);
+
+      // FATURA é dias do mês [10]; trocar para 20 mexe na série.
+      const dias = el.querySelector('.rp-form input[placeholder="10, 25"]') as HTMLInputElement;
+      dias.value = '20';
+      dias.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      expect(el.querySelector('.rp-form__aviso')?.textContent).toContain('recalculada');
+      expect((el.querySelector('.rp-panel--form .rp-primary') as HTMLElement).textContent)
+        .toContain('reagendar');
+
+      (el.querySelector('.rp-panel--form .rp-primary') as HTMLButtonElement).click();
+
+      const put = http.expectOne(req => req.method === 'PUT');
+      expect(put.request.url).toBe(`${API_V1}/lembrete/${FATURA.uuid}`);
+      // Corpo completo: parcial devolve 400 "Failed to read request".
+      expect(put.request.body.recorrencia.diasFixosNoMes).toEqual([20]);
+      expect(put.request.body.notificacao.metodo).toEqual(['pop-up']);
+
+      put.flush(FATURA);
+      tick();
+      http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([FATURA]);
+      tick();
+    }));
+
+    it('avisa que um lembrete concluído volta a pendente ao reagendar', fakeAsync(() => {
+      const feito = { ...FATURA, status: 'CONCLUIDO' as const, proximasExecucoes: [] };
+      abrir([feito]);
+      (el.querySelector('.rp-cta') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      (el.querySelector('.rp-acao--editar') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      const dias = el.querySelector('.rp-form input[placeholder="10, 25"]') as HTMLInputElement;
+      dias.value = '20';
+      dias.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      expect(el.querySelector('.rp-form__aviso')?.textContent).toContain('volta a pendente');
     }));
 
     it('criar depois de editar volta a ser POST, sem herdar o uuid', fakeAsync(() => {
@@ -562,8 +606,7 @@ describe('RoutinePusherComponent', () => {
       fixture.detectChanges();
       (el.querySelector('.rp-panel--form .rp-primary') as HTMLButtonElement).click();
 
-      const post = http.expectOne(req => req.method === 'POST');
-      expect(post.request.url).toBe(`${API_V1}/lembrete`);
+      const post = http.expectOne(req => req.method === 'POST' && req.url === `${API_V1}/lembrete`);
       post.flush(AGUA);
       tick();
       http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([FATURA, AGUA]);
@@ -572,12 +615,6 @@ describe('RoutinePusherComponent', () => {
   });
 
   describe('categorias', () => {
-    function abrirGerenciador(): void {
-      abrir([FATURA]);
-      (el.querySelector('.rp-categoria') as HTMLButtonElement).click();
-      fixture.detectChanges();
-    }
-
     it('mostra a categoria do lembrete como selo com a cor dela', fakeAsync(() => {
       abrir([FATURA]);
 
@@ -586,108 +623,30 @@ describe('RoutinePusherComponent', () => {
       expect(selo.style.getPropertyValue('--cor-categoria')).toBe('#FB8C00');
     }));
 
-    it('o selo abre o gerenciador com todas as categorias', fakeAsync(() => {
-      abrirGerenciador();
+    it('o selo abre a lista de categorias, somente leitura', fakeAsync(() => {
+      abrir([FATURA]);
+      (el.querySelector('.rp-categoria') as HTMLButtonElement).click();
+      fixture.detectChanges();
 
-      expect(el.querySelector('.rp-panel--categorias')).toBeTruthy();
-      expect(el.querySelectorAll('.rp-cat').length).toBe(CATEGORIAS.length);
+      const painel = el.querySelector('.rp-panel--categorias');
+      expect(painel).toBeTruthy();
+      expect(painel!.querySelectorAll('.rp-cat').length).toBe(CATEGORIAS.length);
+
+      // As categorias são cenário fixo do servidor: nada de criar, editar ou
+      // excluir — botão que não funciona é pior que botão ausente.
+      expect(painel!.querySelector('.rp-acao--editar')).withContext('sem editar').toBeNull();
+      expect(painel!.querySelector('.rp-acao--excluir')).withContext('sem excluir').toBeNull();
+      expect(painel!.querySelector('input')).withContext('sem campo de criar').toBeNull();
     }));
 
-    it('cria categoria e relista categorias E lembretes', fakeAsync(() => {
-      abrirGerenciador();
-
-      const campo = el.querySelector('.rp-cat-nova .rp-input') as HTMLInputElement;
-      campo.value = 'Financeiro';
-      campo.dispatchEvent(new Event('input'));
-      fixture.detectChanges();
-      (el.querySelector('.rp-cat-nova__add') as HTMLButtonElement).click();
-
-      const post = http.expectOne(req => req.method === 'POST' && req.url === `${API_V1}/categoria`);
-      expect(post.request.body).toEqual({ nome: 'Financeiro', cor: jasmine.any(String) });
-      post.flush({ id: 9, nome: 'Financeiro', cor: '#43A047', fatorOrdem: 6 });
-      tick();
-
-      // Relista em série: o GET /lembrete só sai depois que o /categoria resolve.
-      // O lembrete carrega uma cópia da categoria — sem isso o card fica velho.
-      http.expectOne(req => req.url === `${API_V1}/categoria`).flush(CATEGORIAS);
-      tick();
-      http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([FATURA]);
-      tick();
-    }));
-
-    it('edita categoria com PUT no id certo', fakeAsync(() => {
-      abrirGerenciador();
-
-      (el.querySelector('.rp-acao--editar.rp-acao--pequena') as HTMLButtonElement).click();
+    it('nenhuma escrita de categoria sai do front', fakeAsync(() => {
+      abrir([FATURA]);
+      (el.querySelector('.rp-categoria') as HTMLButtonElement).click();
       fixture.detectChanges();
 
-      const campo = el.querySelector('.rp-cat__campo') as HTMLInputElement;
-      expect(campo.value).withContext('preenchido com o nome atual').toBe('Saúde');
-      campo.value = 'Bem-estar';
-      campo.dispatchEvent(new Event('input'));
-      fixture.detectChanges();
-
-      (el.querySelector('.rp-cat--editando .rp-acao--confirmar') as HTMLButtonElement).click();
-
-      const put = http.expectOne(req => req.method === 'PUT');
-      expect(put.request.url).toBe(`${API_V1}/categoria/1`);
-      expect(put.request.body.nome).toBe('Bem-estar');
-      put.flush({ id: 1, nome: 'Bem-estar', cor: '#43A047', fatorOrdem: 1 });
-      tick();
-      http.expectOne(req => req.url === `${API_V1}/categoria`).flush(CATEGORIAS);
-      tick();
-      http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([FATURA]);
-      tick();
-    }));
-
-    it('mostra o 422 do servidor quando a categoria ainda tem lembretes', fakeAsync(() => {
-      abrirGerenciador();
-
-      (el.querySelector('.rp-acao--excluir.rp-acao--pequena') as HTMLButtonElement).click();
-
-      http.expectOne(req => req.method === 'DELETE').flush(
-        {
-          status: 422,
-          mensagem: 'Não foi possível concluir a exclusão dessa categoria. Ainda restam lembretes associados',
-        },
-        { status: 422, statusText: 'Unprocessable Entity' },
-      );
-      tick();
-      fixture.detectChanges();
-
-      expect(el.querySelector('.rp-panel--categorias .rp-form__erro')?.textContent)
-        .toContain('Ainda restam lembretes');
-    }));
-
-    it('explica o 401 de produção em vez de dar erro genérico', fakeAsync(() => {
-      abrirGerenciador();
-
-      const campo = el.querySelector('.rp-cat-nova .rp-input') as HTMLInputElement;
-      campo.value = 'Financeiro';
-      campo.dispatchEvent(new Event('input'));
-      fixture.detectChanges();
-      (el.querySelector('.rp-cat-nova__add') as HTMLButtonElement).click();
-
-      http.expectOne(req => req.method === 'POST' && req.url === `${API_V1}/categoria`)
-        .flush({ status: 401 }, { status: 401, statusText: 'Unauthorized' });
-      tick();
-      fixture.detectChanges();
-
-      const erro = el.querySelector('.rp-panel--categorias .rp-form__erro')?.textContent ?? '';
-      expect(erro).toContain('login');
-      expect(erro).toContain('401');
-    }));
-
-    it('a falha da categoria não vaza para o alerta da tela principal', fakeAsync(() => {
-      abrirGerenciador();
-
-      (el.querySelector('.rp-acao--excluir.rp-acao--pequena') as HTMLButtonElement).click();
-      http.expectOne(req => req.method === 'DELETE')
-        .flush({ status: 422, mensagem: 'em uso' }, { status: 422, statusText: 'Unprocessable Entity' });
-      tick();
-      fixture.detectChanges();
-
-      expect(el.querySelector('.rp-alerta')).withContext('alerta global limpo').toBeNull();
+      // http.verify() no afterEach reprova qualquer requisição não esperada;
+      // aqui a garantia é explícita.
+      http.expectNone(req => req.url.includes('/categoria') && req.method !== 'GET');
     }));
   });
 
@@ -701,8 +660,8 @@ describe('RoutinePusherComponent', () => {
 
     const del = http.expectOne(req => req.method === 'DELETE');
     expect(del.request.url).toBe(`${API_V1}/lembrete/${AGUA.uuid}`);
-    // O backend responde texto puro aqui, não JSON.
-    del.flush('Lembrete excluído com sucesso!');
+    // 204 sem corpo.
+    del.flush(null, { status: 204, statusText: 'No Content' });
     tick();
 
     http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([FATURA]);

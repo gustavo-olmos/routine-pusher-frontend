@@ -20,8 +20,6 @@ export interface Falha {
   limiteAtingido: boolean;
   /** Rede/CORS/servidor fora — em dev quase sempre é o backend local desligado. */
   semRede: boolean;
-  /** 401: a operação exige login. Em produção é o caso da escrita de categoria. */
-  semPermissao: boolean;
 }
 
 const SEM_REDE =
@@ -30,11 +28,6 @@ const SEM_REDE =
   'e o cookie de sessão (SameSite=Lax) não viaja.';
 
 const GENERICA = 'Algo deu errado ao falar com o servidor. Tente de novo.';
-
-const SEM_PERMISSAO =
-  'Esta operação exige login. Criar, editar e excluir categorias funciona no ' +
-  'backend local, mas em produção o servidor responde 401 — categoria é cenário ' +
-  'fixo lá.';
 
 /** Traduz qualquer erro do HttpClient para algo que a tela consegue mostrar. */
 export function normalizarFalha(erro: unknown): Falha {
@@ -45,7 +38,6 @@ export function normalizarFalha(erro: unknown): Falha {
       campos: {},
       limiteAtingido: false,
       semRede: false,
-      semPermissao: false,
     };
   }
 
@@ -57,7 +49,6 @@ export function normalizarFalha(erro: unknown): Falha {
       campos: {},
       limiteAtingido: false,
       semRede: true,
-      semPermissao: false,
     };
   }
 
@@ -71,18 +62,6 @@ export function normalizarFalha(erro: unknown): Falha {
       campos,
       limiteAtingido: true,
       semRede: false,
-      semPermissao: false,
-    };
-  }
-
-  if (erro.status === 401) {
-    return {
-      status: 401,
-      mensagem: SEM_PERMISSAO,
-      campos,
-      limiteAtingido: false,
-      semRede: false,
-      semPermissao: true,
     };
   }
 
@@ -94,7 +73,6 @@ export function normalizarFalha(erro: unknown): Falha {
     campos,
     limiteAtingido: false,
     semRede: false,
-    semPermissao: false,
   };
 }
 

@@ -1648,8 +1648,8 @@ button.rp-cta {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 46px;
-  padding: 8px 10px;
+  min-height: 44px;
+  padding: 8px 12px;
   border: 1px solid var(--glass-border-soft);
   border-radius: 10px;
   background: var(--glass-fill-quiet);
@@ -1670,78 +1670,16 @@ button.rp-cta {
     white-space: nowrap;
   }
 
-  &__campo {
-    flex: 1;
-    min-height: 34px;
-    padding: 6px 10px;
-    font-size: 13px;
-  }
-
-  &__acoes {
+  /* O hex vem do servidor e é o que o front usa nos selos — mostrar deixa a
+     origem da cor explícita, já que o visitante não pode mudá-la. */
+  &__cor-hex {
     flex: none;
-    display: flex;
-    gap: 6px;
-  }
-
-  &__cores {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
-  &--editando {
-    flex-wrap: wrap;
-    border-color: var(--accent);
-    background: var(--glass-fill);
+    font-size: 10.5px;
+    color: var(--text-5);
+    text-transform: uppercase;
   }
 }
 
-/* Os círculos de ação do detalhe são grandes demais para uma linha de lista. */
-.rp-acao--pequena {
-  width: 30px;
-  height: 30px;
-
-  svg { width: 14px; height: 14px; }
-}
-
-.rp-cor {
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: 2px solid transparent;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: transform 0.12s, box-shadow 0.12s;
-
-  &:hover { transform: scale(1.15); }
-
-  &--ativa {
-    border-color: var(--text);
-    box-shadow: 0 0 0 2px var(--glass-fill);
-  }
-}
-
-.rp-cat-nova {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  padding-top: 14px;
-  border-top: 1px solid var(--rule);
-
-  &__linha {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-  }
-
-  &__add {
-    flex: none;
-    min-height: 42px;
-  }
-}
-
-/* O título divide a linha com o selo de categoria, que fica à direita. O cron
-   saiu do card — continua na lista, onde a comparação com a regra faz sentido. */
 .rp-card__titulo {
   display: flex;
   align-items: flex-start;
@@ -1754,4 +1692,27 @@ button.rp-cta {
     flex: none;
     margin-top: 4px;
   }
+}
+
+/* Aviso de reagendamento: informa, não impede — por isso âmbar do próprio
+   gradiente do fundo, e não a cor de erro. */
+.rp-form__aviso {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  background: var(--glass-fill-quiet);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+
+/* A janela de 48h é o limite mais duro do demo: um lembrete para daqui a duas
+   semanas não sobrevive se a pessoa não voltar em dois dias. Melhor dizer. */
+.rp-persistencia {
+  margin: -8px 0 0;
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--text-5);
+  text-wrap: pretty;
 }

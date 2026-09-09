@@ -1,5 +1,12 @@
 import { Lembrete, Recorrencia } from '../api/modelos';
-import { FORMULARIO_VAZIO, paraEntrada, paraFormulario } from './formulario';
+import {
+  EstadoFormulario,
+  FORMULARIO_VAZIO,
+  mudouAgendamento,
+  paraDetalhes,
+  paraEntrada,
+  paraFormulario,
+} from './formulario';
 
 const RECORRENCIA_BASE: Recorrencia = {
   quantidade: null,
@@ -194,5 +201,105 @@ describe('paraEntrada', () => {
     });
     expect(entrada.titulo).toBe('Beber água');
     expect(entrada.descricao).toBeNull();
+  });
+});
+
+describe('intervalo mínimo', () => {
+  // O servidor recusa com 422 abaixo de 5 minutos; a trava mora aqui também
+  // para nenhum caminho do formulário escapar.
+  const base = { ...FORMULARIO_VAZIO, categoriaId: 1, estrategia: 'intervalo' as const };
+
+  it('eleva minutos abaixo de 5 para o mínimo', () => {
+    expect(paraEntrada({ ...base, unidade: 'minutos', passo: '1' }).recorrencia.intervaloMinutos)
+      .toBe(5);
+    expect(paraEntrada({ ...base, unidade: 'minutos', passo: '0' }).recorrencia.intervaloMinutos)
+      .toBe(5);
+  });
+
+  it('respeita minutos a partir de 5', () => {
+    expect(paraEntrada({ ...base, unidade: 'minutos', passo: '30' }).recorrencia.intervaloMinutos)
+      .toBe(30);
+  });
+
+  it('não aplica o piso a horas nem a dias', () => {
+    expect(paraEntrada({ ...base, unidade: 'horas', passo: '1' }).recorrencia.intervaloHoras).toBe(1);
+    expect(paraEntrada({ ...base, unidade: 'dias', passo: '1' }).recorrencia.intervaloDias).toBe(1);
+  });
+});
+
+describe('paraDetalhes', () => {
+  it('leva só o que o PATCH aceita', () => {
+    const detalhes = paraDetalhes({
+      ...FORMULARIO_VAZIO,
+      titulo: '  Pagar a fatura ',
+      descricao: '  ',
+      categoriaId: 3,
+      estrategia: 'mes',
+      diasMes: '10',
+    });
+    expect(detalhes).toEqual({ titulo: 'Pagar a fatura', descricao: null, categoriaId: 3 });
+  });
+});
+
+describe('mudouAgendamento', () => {
+  // Escolhe o verbo: PATCH /detalhes preserva a série e o status; PUT recalcula
+  // os disparos e devolve um concluído para PENDENTE. Errar aqui ressuscita
+  // lembrete concluído por causa de uma vírgula no título.
+  const semana: EstadoFormulario = {
+    ...FORMULARIO_VAZIO,
+    categoriaId: 1,
+    estrategia: 'semana',
+    diasSemana: ['SEGUNDA', 'QUINTA'],
+    horario: '08:00',
+  };
+
+  it('texto e categoria não reagendam', () => {
+    expect(mudouAgendamento(semana, { ...semana, titulo: 'outro' })).toBeFalse();
+    expect(mudouAgendamento(semana, { ...semana, descricao: 'nova' })).toBeFalse();
+    expect(mudouAgendamento(semana, { ...semana, categoriaId: 9 })).toBeFalse();
+  });
+
+  it('trocar a ordem dos dias não é mudança — é o mesmo conjunto', () => {
+    // Desmarcar e remarcar um dia reordena o array sem mexer na regra.
+    expect(mudouAgendamento(semana, { ...semana, diasSemana: ['QUINTA', 'SEGUNDA'] })).toBeFalse();
+  });
+
+  it('mexer nos dias, no horário ou na política reagenda', () => {
+    expect(mudouAgendamento(semana, { ...semana, diasSemana: ['SEGUNDA'] })).toBeTrue();
+    expect(mudouAgendamento(semana, { ...semana, horario: '09:00' })).toBeTrue();
+    expect(mudouAgendamento(semana, { ...semana, politica: 'PULAR' })).toBeTrue();
+    expect(mudouAgendamento(semana, { ...semana, posicaoMes: 2 })).toBeTrue();
+  });
+
+  it('trocar de estratégia reagenda', () => {
+    expect(mudouAgendamento(semana, { ...semana, estrategia: 'mes', diasMes: '10' })).toBeTrue();
+  });
+
+  it('em intervalo, olha passo e unidade — e ignora horário, que ali não vale', () => {
+    const intervalo: EstadoFormulario = {
+      ...FORMULARIO_VAZIO,
+      categoriaId: 1,
+      estrategia: 'intervalo',
+      unidade: 'horas',
+      passo: '3',
+    };
+    expect(mudouAgendamento(intervalo, { ...intervalo, passo: '4' })).toBeTrue();
+    expect(mudouAgendamento(intervalo, { ...intervalo, unidade: 'dias' })).toBeTrue();
+    expect(mudouAgendamento(intervalo, { ...intervalo, horario: '23:00' })).toBeFalse();
+    expect(mudouAgendamento(intervalo, { ...intervalo, politica: 'PULAR' })).toBeFalse();
+  });
+
+  it('"10, 25" e "25,10" são a mesma regra', () => {
+    const mes: EstadoFormulario = {
+      ...FORMULARIO_VAZIO, categoriaId: 1, estrategia: 'mes', diasMes: '10, 25',
+    };
+    expect(mudouAgendamento(mes, { ...mes, diasMes: '25,10' })).toBeFalse();
+    expect(mudouAgendamento(mes, { ...mes, diasMes: '10' })).toBeTrue();
+  });
+
+  it('mudar a contagem de repetições reagenda', () => {
+    expect(mudouAgendamento(semana, { ...semana, quantidade: '4' })).toBeTrue();
+    // "" e "0" significam a mesma coisa: sem fim.
+    expect(mudouAgendamento(semana, { ...semana, quantidade: '' })).toBeFalse();
   });
 });

@@ -30,8 +30,17 @@ export const SIMULADOR_URL = '/simulador';
 export const LIMITE_LEMBRETES = 10;
 export const LIMITE_IA = 10;
 
-/** A sessão morre com 30 min de inatividade; qualquer chamada renova. */
-export const SESSAO_MINUTOS = 30;
+/**
+ * A sessão morre com 48h de inatividade; qualquer chamada renova. O cookie dura
+ * 7 dias, mas quem manda é o servidor: passadas as 48h o visitante vira outro.
+ *
+ * É o limite mais duro da experiência — um lembrete marcado para daqui a duas
+ * semanas não sobrevive se a pessoa não voltar em dois dias. A tela avisa.
+ */
+export const SESSAO_HORAS = 48;
+
+/** Recorrência por intervalo abaixo disso é recusada com 422. */
+export const INTERVALO_MINIMO_MINUTOS = 5;
 
 /** Máximos de campo aceitos pelo backend. */
 export const MAX_TITULO = 255;
