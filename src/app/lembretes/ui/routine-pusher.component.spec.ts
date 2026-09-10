@@ -4,6 +4,7 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { signal } from '@angular/core';
 
 import { credenciaisInterceptor } from '../api/credenciais.interceptor';
+import { AlertaService } from '../alerta/alerta.service';
 import { CategoriaService, LembreteService, SessaoService } from '../api/lembrete.service';
 import { Categoria, Lembrete, Sessao } from '../api/modelos';
 import { NotificacoesService } from '../api/notificacoes.service';
@@ -93,9 +94,32 @@ const FATURA: Lembrete = {
 class NotificacoesFalsas {
   readonly avisos = signal<never[]>([]);
   readonly conectado = signal(false);
+  aoReceber: ((titulo: string) => void) | null = null;
   conectar(): void {}
   desconectar(): void {}
   dispensar(): void {}
+  /** Simula um evento chegando pelo stream. */
+  disparar(titulo: string): void {
+    this.aoReceber?.(titulo);
+  }
+}
+
+/** O de verdade toca som e fala com Notification/serviceWorker. */
+class AlertaFalso {
+  readonly permissao = signal<'default' | 'granted' | 'denied' | 'indisponivel'>('default');
+  readonly precisaInstalarNoIphone = signal(false);
+  readonly avisados: { titulo: string; corpo: string }[] = [];
+  pedidos = 0;
+
+  async pedirPermissao(): Promise<'granted'> {
+    this.pedidos++;
+    this.permissao.set('granted');
+    return 'granted';
+  }
+
+  async avisar(titulo: string, corpo: string): Promise<void> {
+    this.avisados.push({ titulo, corpo });
+  }
 }
 
 describe('RoutinePusherComponent', () => {
@@ -126,7 +150,12 @@ describe('RoutinePusherComponent', () => {
       ],
     })
       .overrideComponent(RoutinePusherComponent, {
-        set: { providers: [{ provide: NotificacoesService, useClass: NotificacoesFalsas }] },
+        set: {
+          providers: [
+            { provide: NotificacoesService, useClass: NotificacoesFalsas },
+            { provide: AlertaService, useClass: AlertaFalso },
+          ],
+        },
       })
       .compileComponents();
 
@@ -637,6 +666,78 @@ describe('RoutinePusherComponent', () => {
     // Os controles ficam abaixo dos cards, onde dá para alcançar no celular.
     expect(el.querySelector('.rp-carousel__row .rp-rail')).toBeTruthy();
   }));
+
+  describe('aviso do navegador', () => {
+    function alerta(): AlertaFalso {
+      return fixture.debugElement.injector.get(AlertaService) as unknown as AlertaFalso;
+    }
+
+    function stream(): NotificacoesFalsas {
+      return fixture.debugElement.injector.get(NotificacoesService) as unknown as NotificacoesFalsas;
+    }
+
+    it('o evento do stream vira aviso com a categoria e a recorrência', fakeAsync(() => {
+      abrir([FATURA]);
+
+      stream().disparar('Pagar a fatura do cartão');
+
+      expect(alerta().avisados.length).toBe(1);
+      expect(alerta().avisados[0].titulo).toBe('Pagar a fatura do cartão');
+      // O stream manda só o título; o corpo vem do lembrete em memória.
+      expect(alerta().avisados[0].corpo).toContain('Casa');
+    }));
+
+    it('título que não casa com nenhum lembrete ainda avisa', fakeAsync(() => {
+      abrir([FATURA]);
+
+      // Acontece se o lembrete foi excluído noutra aba entre o disparo e o
+      // evento chegar. Ficar calado seria pior que um texto genérico.
+      stream().disparar('Um lembrete que a lista não tem');
+
+      expect(alerta().avisados.length).toBe(1);
+      expect(alerta().avisados[0].corpo).toContain('disparou agora');
+    }));
+
+    it('o sino pede permissão, e só some quando o navegador não tem a API', fakeAsync(() => {
+      abrir([FATURA]);
+
+      const sino = el.querySelector('.rp-sino') as HTMLButtonElement;
+      expect(sino).withContext('sino visível quando dá para pedir').toBeTruthy();
+
+      sino.click();
+      fixture.detectChanges();
+
+      expect(alerta().pedidos).toBe(1);
+      // Concedido, o sino continua na tela para dizer que está ligado.
+      expect((el.querySelector('.rp-sino') as HTMLButtonElement).classList)
+        .toContain('rp-sino--ligado');
+    }));
+
+    it('bloqueado pelo navegador, o sino fica visível e apagado', fakeAsync(() => {
+      abrir([FATURA]);
+      alerta().permissao.set('denied');
+      fixture.detectChanges();
+
+      // Sumir esconderia o motivo de o aviso não chegar; quem desfaz é o
+      // navegador, não a tela.
+      const sino = el.querySelector('.rp-sino') as HTMLButtonElement;
+      expect(sino).toBeTruthy();
+      expect(sino.disabled).toBeTrue();
+      expect(sino.title).toContain('bloqueou');
+    }));
+
+    it('sem a API de notificação, some o sino e a tela explica o iphone', fakeAsync(() => {
+      abrir([FATURA]);
+      alerta().permissao.set('indisponivel');
+      alerta().precisaInstalarNoIphone.set(true);
+      fixture.detectChanges();
+
+      // No Safari do iPhone a API só existe em site adicionado à Tela de
+      // Início: oferecer um botão que não faz nada seria pior que explicar.
+      expect(el.querySelector('.rp-sino')).toBeNull();
+      expect(el.textContent).toContain('adicionar à tela de início');
+    }));
+  });
 
   describe('categorias', () => {
     /** Abre o painel pelo selo do card — com lembrete alvo. */

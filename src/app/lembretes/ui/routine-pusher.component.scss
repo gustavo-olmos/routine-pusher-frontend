@@ -189,6 +189,30 @@
   }
 }
 
+.rp-acoes-topo {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* O sino some quando não há API (iPhone fora da Tela de Início); quando o
+   navegador bloqueou, ele fica visível e apagado — sumir esconderia o motivo
+   de o aviso não chegar. */
+.rp-sino {
+  &--ligado {
+    border-color: var(--ok);
+    color: var(--ok);
+  }
+
+  &:disabled {
+    cursor: default;
+    &:hover { transform: none; }
+  }
+
+  &:disabled:not(.rp-sino--ligado) { opacity: 0.45; }
+}
+
 .rp-titlerow {
   display: flex;
   align-items: center;
@@ -290,7 +314,7 @@
   /* Era 64px enquanto o trilho ficava ao lado dos cards. Ele passou para
      baixo e ocupa 48px que antes eram respiro, então a margem devolve isso
      para a página manter o mesmo ritmo entre as seções. */
-  margin-bottom: 24px;
+  margin-bottom: 40px;
 }
 
 .rp-carousel__row {
@@ -1425,7 +1449,11 @@
   gap: 12px;
 }
 
-.rp-tema {
+/* Os dois botões do topo dividem o desenho, mas não a classe: um seletor só
+   faria `.rp-tema` casar com o sino também, e o teste do tema clicaria no
+   botão errado. */
+.rp-tema,
+.rp-sino {
   flex: none;
   width: 34px;
   height: 34px;

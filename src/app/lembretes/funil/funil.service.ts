@@ -19,6 +19,7 @@ export type EventoFunil =
   | 'categoria_excluida'
   | 'datas_confirmadas'
   | 'tema_alternado'
+  | 'avisos_permissao'
   | 'convite_simulador_visto'
   | 'convite_simulador_dispensado'
   | 'saida_simulador';

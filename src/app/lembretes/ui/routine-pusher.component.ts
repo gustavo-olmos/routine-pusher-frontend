@@ -18,6 +18,7 @@ import {
   PoliticaDiaUtil,
 } from '../api/modelos';
 import { Aviso, NotificacoesService } from '../api/notificacoes.service';
+import { AlertaService } from '../alerta/alerta.service';
 import { SEM_CRON, cronEquivalente, resumoRecorrencia } from '../dominio/cron';
 import {
   Estrategia,
@@ -94,13 +95,14 @@ const dois = (n: number) => String(n).padStart(2, '0');
   templateUrl: './routine-pusher.component.html',
   styleUrl: './routine-pusher.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [NotificacoesService],
+  providers: [NotificacoesService, AlertaService],
   host: { '[class.rp-dark]': 'temaAtivo() === "dark"' },
 })
 export class RoutinePusherComponent implements OnInit {
   private readonly store = inject(LembretesStore);
   private readonly funil = inject(FunilService);
   private readonly notificacoes = inject(NotificacoesService);
+  private readonly alerta = inject(AlertaService);
 
   readonly theme = input<Tema>('light');
   /** Teto de execuções exibidas; o servidor manda cinco. */
@@ -128,6 +130,8 @@ export class RoutinePusherComponent implements OnInit {
   protected readonly restantes = this.store.restantes;
   protected readonly semCategorias = this.store.semCategorias;
   protected readonly avisos = this.notificacoes.avisos;
+  protected readonly permissaoAviso = this.alerta.permissao;
+  protected readonly precisaInstalarNoIphone = this.alerta.precisaInstalarNoIphone;
 
   /**
    * Escolha explícita do visitante, ou `null` enquanto ele não tocar no botão.
@@ -291,6 +295,17 @@ export class RoutinePusherComponent implements OnInit {
       : `o intervalo mínimo é de ${INTERVALO_MINIMO_MINUTOS} minutos`;
   });
 
+  protected readonly rotuloAvisos = computed(() => {
+    switch (this.permissaoAviso()) {
+      case 'granted':
+        return 'avisos do navegador ligados';
+      case 'denied':
+        return 'o navegador bloqueou os avisos deste site — libere nas permissões dele';
+      default:
+        return 'avisar no navegador quando um lembrete disparar';
+    }
+  });
+
   protected readonly animation = computed(() => (this.tick() % 2 === 0 ? 'rpRiseA' : 'rpRiseB'));
 
   /** Em 400 a mensagem raiz é genérica; os campos inválidos dizem mais. */
@@ -373,10 +388,38 @@ Detalhes...") e é um defeito conhecido do backend. Mostrar
 
   ngOnInit(): void {
     this.funil.registrar('agendador_aberto');
+    this.notificacoes.aoReceber = titulo => this.alertarDisparo(titulo);
     void this.store.iniciar().then(() => {
       this.selecionarPrimeiro();
       this.notificacoes.conectar();
     });
+  }
+
+  /**
+   * Monta o texto do aviso do sistema.
+   *
+   * O SSE manda **só o título**, então o cruzamento com a lista em memória é
+   * por título: se houver dois lembretes com o mesmo nome, pode pegar o outro.
+   * O texto genérico cobre o caso de não achar. A correção definitiva é o
+   * stream mandar o `uuid` junto — está anotado como pedido ao backend.
+   */
+  private alertarDisparo(titulo: string): void {
+    const alvo = this.lembretes().find(l => l.titulo === titulo);
+    const corpo = alvo
+      ? `${alvo.categoria.nome} · ${resumoRecorrencia(
+          alvo.recorrencia,
+          alvo.notificacao?.horario,
+          alvo.notificacao?.datasEspecificadas?.length ?? 0,
+        )}`
+      : 'seu lembrete disparou agora';
+
+    void this.alerta.avisar(titulo, corpo);
+  }
+
+  /** O pedido de permissão precisa nascer de um clique — ver AlertaService. */
+  protected async ativarAvisos(): Promise<void> {
+    const resultado = await this.alerta.pedirPermissao();
+    this.funil.registrar('avisos_permissao', { resultado });
   }
 
   // ---- carrossel -----------------------------------------------------------

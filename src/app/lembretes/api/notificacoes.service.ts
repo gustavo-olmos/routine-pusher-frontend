@@ -34,6 +34,15 @@ export class NotificacoesService {
   readonly avisos = signal<Aviso[]>([]);
   readonly conectado = signal(false);
 
+  /**
+   * Chamado a cada evento do stream, com o título cru.
+   *
+   * É um gancho em vez de uma chamada direta ao alerta porque o stream **só
+   * manda o título** — quem sabe cruzar isso com o lembrete em memória e montar
+   * um texto decente é a tela, não este serviço.
+   */
+  aoReceber: ((titulo: string) => void) | null = null;
+
   constructor() {
     inject(DestroyRef).onDestroy(() => this.desconectar());
   }
@@ -72,6 +81,8 @@ export class NotificacoesService {
 
     const aviso: Aviso = { id: ++this.seq, titulo, em: new Date() };
     this.avisos.update(lista => [...lista, aviso].slice(-MAX_VISIVEIS));
+
+    this.aoReceber?.(titulo);
 
     const t = setTimeout(() => {
       this.temporizadores.delete(t);
