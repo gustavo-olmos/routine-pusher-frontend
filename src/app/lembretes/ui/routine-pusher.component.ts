@@ -83,8 +83,8 @@ interface ExecucaoVm {
   first: boolean;
 }
 
-/** Altura do card + gap do carrossel — precisa casar com o SCSS. */
-const CARD_STEP = 364;
+/** Gap entre os cards do carrossel — precisa casar com o `gap` do `.rp-track`. */
+const GAP_CARDS = 24;
 
 const dois = (n: number) => String(n).padStart(2, '0');
 
@@ -190,7 +190,18 @@ export class RoutinePusherComponent implements OnInit {
     () => this.lembretes()[this.index()] ?? null,
   );
 
-  protected readonly trackShift = computed(() => `translateY(-${this.index() * CARD_STEP}px)`);
+  /**
+   * O deslocamento é horizontal e em porcentagem, não em pixels.
+   *
+   * Porcentagem em `transform` resolve contra a largura do próprio elemento, e
+   * a trilha tem exatamente a largura do viewport — que é a largura de um card.
+   * Assim o passo acompanha a tela sem constante mágica: a versão vertical
+   * dependia de um `364` que era a altura fixa do card mais o gap, e qualquer
+   * mudança no SCSS a desalinhava em silêncio.
+   */
+  protected readonly trackShift = computed(
+    () => `translateX(calc(${this.index()} * (-100% - ${GAP_CARDS}px)))`,
+  );
 
   protected readonly position = computed(() => {
     const total = this.lembretes().length;

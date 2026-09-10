@@ -614,6 +614,30 @@ describe('RoutinePusherComponent', () => {
     }));
   });
 
+  it('o carrossel anda na horizontal, em passo proporcional à largura', fakeAsync(() => {
+    abrir([AGUA, FATURA]);
+
+    const trilha = el.querySelector('.rp-track') as HTMLElement;
+    // Porcentagem, não pixel: a versão vertical dependia de um 364 fixo que era
+    // a altura do card mais o gap, e mudar o SCSS a desalinhava em silêncio.
+    expect(trilha.style.transform).toContain('translateX');
+    expect(trilha.style.transform).not.toContain('translateY');
+    // O navegador normaliza o calc, então o teste olha o efeito, não o texto:
+    // no primeiro card não há deslocamento.
+    const primeiro = trilha.style.transform;
+    expect(primeiro).not.toContain('-100%');
+
+    (el.querySelectorAll('.rp-rail__btn')[1] as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    // No segundo, anda uma largura de trilha (= um card) mais o gap.
+    expect(trilha.style.transform).not.toBe(primeiro);
+    expect(trilha.style.transform).toContain('-100%');
+    expect(trilha.style.transform).toContain('24px');
+    // Os controles ficam abaixo dos cards, onde dá para alcançar no celular.
+    expect(el.querySelector('.rp-carousel__row .rp-rail')).toBeTruthy();
+  }));
+
   describe('categorias', () => {
     /** Abre o painel pelo selo do card — com lembrete alvo. */
     function abrirPainel(lembretes: Lembrete[] = [FATURA]): Element {

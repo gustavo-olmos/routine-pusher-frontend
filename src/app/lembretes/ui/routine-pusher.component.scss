@@ -287,13 +287,16 @@
   display: flex;
   flex-direction: column;
   gap: 9px;
-  margin-bottom: 64px;
+  /* Era 64px enquanto o trilho ficava ao lado dos cards. Ele passou para
+     baixo e ocupa 48px que antes eram respiro, então a margem devolve isso
+     para a página manter o mesmo ritmo entre as seções. */
+  margin-bottom: 24px;
 }
 
 .rp-carousel__row {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .rp-viewport {
@@ -305,9 +308,10 @@
   overflow: hidden;
 }
 
+/* O gap tem de casar com `GAP_CARDS` no .ts: o deslocamento é
+   `-100% - gap` por card, e 100% é a largura da própria trilha. */
 .rp-track {
   display: flex;
-  flex-direction: column;
   gap: 24px;
   transition: transform 0.65s cubic-bezier(0.22, 0.85, 0.25, 1);
 }
@@ -449,7 +453,6 @@
 .rp-rail {
   flex: none;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 12px;
@@ -476,7 +479,6 @@
 
 .rp-dots {
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 7px;
 }
@@ -489,10 +491,11 @@
   border-radius: 4px;
   background: var(--idle);
   cursor: pointer;
-  transition: height 0.35s cubic-bezier(0.22, 0.85, 0.25, 1), background 0.3s;
+  transition: width 0.35s cubic-bezier(0.22, 0.85, 0.25, 1), background 0.3s;
 
+  /* Cresce no eixo em que o carrossel anda — antes era a altura. */
   &--active {
-    height: 22px;
+    width: 22px;
     background: var(--accent);
   }
 }
