@@ -5,18 +5,14 @@ import { CategoriaService, LembreteService, SessaoService } from '../api/lembret
 import { Falha, normalizarFalha } from '../api/erros';
 import {
   Categoria,
+  CategoriaEntrada,
   DetalhesEntrada,
   Lembrete,
   LembreteEntrada,
   Sessao,
 } from '../api/modelos';
 import { FunilService } from '../funil/funil.service';
-import {
-  GATILHO_CATEGORIA,
-  GATILHO_FRASE,
-  LIMITE_IA,
-  LIMITE_LEMBRETES,
-} from '../lembretes.config';
+import { GATILHO_FRASE, LIMITE_IA, LIMITE_LEMBRETES } from '../lembretes.config';
 
 /** Por que o convite ao simulador apareceu — vira propriedade da métrica. */
 export type MotivoConvite = 'categoria' | 'frase';
@@ -57,6 +53,26 @@ export class LembretesStore {
   readonly restantes = computed(() => Math.max(0, LIMITE_LEMBRETES - this.total()));
   readonly noLimite = computed(() => this.total() >= LIMITE_LEMBRETES);
   readonly iaRestantes = computed(() => Math.max(0, LIMITE_IA - this.iaUsada()));
+
+  /**
+   * Sem categoria não há como criar lembrete: `categoriaId` é obrigatório e
+   * precisa existir na lista do visitante. O backend deixa apagar a última, e
+   * quem fizer isso fica travado — a tela precisa saber disso para desviar.
+   */
+  readonly semCategorias = computed(() => !this.carregando() && this.categorias().length === 0);
+
+  /**
+   * Próxima posição livre. `fatorOrdem` é único, e criar sem mandar um valor
+   * explícito manda zero — o que colide na segunda categoria criada assim.
+   */
+  readonly proximaOrdem = computed(
+    () => Math.max(0, ...this.categorias().map(c => c.fatorOrdem)) + 1,
+  );
+
+  /** Cores já gastas, normalizadas: o servidor compara com a caixa, a tela não. */
+  readonly coresUsadas = computed(
+    () => new Set(this.categorias().map(c => c.cor.toUpperCase())),
+  );
 
   /** Abre a sessão e carrega o cenário. A sessão vem primeiro de propósito: */
   /** é a chamada que faz o servidor emitir o cookie que todas as outras usam. */
@@ -158,6 +174,33 @@ export class LembretesStore {
     await this.mutar(() => this.lembreteApi.excluir(uuid), 'lembrete_excluido');
   }
 
+  // ---- categorias ----------------------------------------------------------
+
+  async criarCategoria(entrada: CategoriaEntrada): Promise<Categoria | null> {
+    return this.escreverCategoria(() => this.categoriaApi.criar(entrada), 'categoria_criada');
+  }
+
+  /**
+   * Relista os lembretes junto: cada um carrega uma **cópia** da categoria, e
+   * sem isso o card continua exibindo o nome e a cor de antes da edição.
+   */
+  async atualizarCategoria(id: number, entrada: CategoriaEntrada): Promise<Categoria | null> {
+    return this.escreverCategoria(
+      () => this.categoriaApi.atualizar(id, entrada),
+      'categoria_editada',
+      true,
+    );
+  }
+
+  /** `false` também quando o servidor recusa por haver lembretes associados (422). */
+  async excluirCategoria(id: number): Promise<boolean> {
+    const feito = await this.escreverCategoria(
+      () => this.categoriaApi.excluir(id),
+      'categoria_excluida',
+    );
+    return feito !== null;
+  }
+
   limparFalha(): void {
     this.falha.set(null);
   }
@@ -166,6 +209,30 @@ export class LembretesStore {
     const atual = this.convite();
     if (atual) this.funil.registrar('convite_simulador_dispensado', { motivo: atual.motivo });
     this.convite.set(null);
+  }
+
+  private async escreverCategoria<T>(
+    chamada: () => import('rxjs').Observable<T>,
+    evento: 'categoria_criada' | 'categoria_editada' | 'categoria_excluida',
+    relistarLembretes = false,
+  ): Promise<T | null> {
+    if (this.enviando()) return null;
+    this.enviando.set(true);
+    this.falha.set(null);
+    try {
+      const resultado = await firstValueFrom(chamada());
+      // A ordem é do servidor (`fatorOrdem`), então relista em vez de emendar
+      // a lista em memória.
+      this.categorias.set(await firstValueFrom(this.categoriaApi.listar()));
+      if (relistarLembretes) await this.recarregar();
+      this.funil.registrar(evento);
+      return resultado;
+    } catch (erro) {
+      this.falha.set(normalizarFalha(erro));
+      return null;
+    } finally {
+      this.enviando.set(false);
+    }
   }
 
   private async enviar(
@@ -206,11 +273,15 @@ export class LembretesStore {
   }
 
   /**
-   * Decide se o lembrete recém-criado merece o convite ao simulador. A categoria
-   * "Casa" é o sinal do backend; a frase é o sinal do usuário.
+   * Decide se o lembrete recém-criado merece o convite ao simulador.
+   *
+   * O gatilho por categoria era o nome fixo "Casa", de quando a lista era global
+   * e do servidor. Com categorias criadas por cada visitante isso nunca mais
+   * dispararia, então a mesma expressão passou a valer para o nome que ele
+   * escolheu — "Financiamento" conta tanto quanto a frase.
    */
   private avaliarConvite(novo: Lembrete, textoOriginal: string): void {
-    const porCategoria = novo.categoria?.nome === GATILHO_CATEGORIA;
+    const porCategoria = GATILHO_FRASE.test(novo.categoria?.nome ?? '');
     const porFrase = GATILHO_FRASE.test(textoOriginal) || GATILHO_FRASE.test(novo.titulo);
     if (!porCategoria && !porFrase) return;
 

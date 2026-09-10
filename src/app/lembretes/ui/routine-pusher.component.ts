@@ -11,6 +11,7 @@ import {
 
 import { resumoDosCampos } from '../api/erros';
 import {
+  Categoria,
   DIAS_SEMANA,
   DiaSemana,
   Lembrete,
@@ -46,7 +47,9 @@ import {
   SESSAO_HORAS,
   MAX_DESCRICAO,
   MAX_FRASE,
+  MAX_NOME_CATEGORIA,
   MAX_TITULO,
+  PALETA,
   SIMULADOR_URL,
   SUGESTOES,
 } from '../lembretes.config';
@@ -112,6 +115,7 @@ export class RoutinePusherComponent implements OnInit {
   protected readonly SIMULADOR_URL = SIMULADOR_URL;
   protected readonly INTERVALO_MINIMO = INTERVALO_MINIMO_MINUTOS;
   protected readonly SESSAO_HORAS = SESSAO_HORAS;
+  protected readonly MAX_NOME_CATEGORIA = MAX_NOME_CATEGORIA;
 
   protected readonly lembretes = this.store.lembretes;
   protected readonly categorias = this.store.categorias;
@@ -122,6 +126,7 @@ export class RoutinePusherComponent implements OnInit {
   protected readonly vazio = this.store.vazio;
   protected readonly noLimite = this.store.noLimite;
   protected readonly restantes = this.store.restantes;
+  protected readonly semCategorias = this.store.semCategorias;
   protected readonly avisos = this.notificacoes.avisos;
 
   /**
@@ -143,8 +148,19 @@ export class RoutinePusherComponent implements OnInit {
   /** Estado do formulário como ele abriu, para saber o que o usuário mexeu. */
   private readonly estadoOriginal = signal<EstadoFormulario | null>(null);
 
-  /** As categorias são fixas no servidor; o painel só as lista. */
+  /**
+   * O painel de categorias tem duas portas: o selo de um lembrete, que abre com
+   * alvo e deixa escolher a categoria dele, e o botão da seção, que abre sem
+   * alvo só para gerenciar. Por isso o alvo não serve de interruptor.
+   */
   protected readonly categoriasAberto = signal(false);
+  protected readonly categoriaAlvoId = signal<string | null>(null);
+
+  /** Editor de categoria dentro do painel; o id `null` significa criando. */
+  protected readonly catEditorAberto = signal(false);
+  protected readonly catEditandoId = signal<number | null>(null);
+  protected readonly catNome = signal('');
+  protected readonly catCor = signal('');
   protected readonly isMobile = signal(
     typeof window !== 'undefined' ? window.innerWidth < 640 : false,
   );
@@ -275,6 +291,75 @@ export class RoutinePusherComponent implements OnInit {
 
   protected readonly erroDe = computed(() => this.falha()?.campos ?? {});
 
+  /** Categoria que já vale para o lembrete alvo, ou `null` quando não há alvo. */
+  protected readonly idCategoriaAlvo = computed(() => this.categoriaAlvo()?.categoria.id ?? null);
+
+  /**
+   * Cada cor da paleta com o aviso de quem já a ocupa.
+   *
+   * `cor` é única por visitante, então uma cor gasta não é uma opção — e a cor
+   * atual da categoria em edição continua livre para ela mesma, senão salvar sem
+   * trocar a cor viraria conflito consigo.
+   */
+  protected readonly paleta = computed(() => {
+    const usadas = this.store.coresUsadas();
+    const propria = this.catCor().toUpperCase();
+    return PALETA.map(c => ({
+      ...c,
+      ocupada: usadas.has(c.hex) && c.hex !== propria,
+    }));
+  });
+
+  /** Sem cor livre não há como criar: a unicidade limita a lista à paleta. */
+  protected readonly paletaEsgotada = computed(() => this.paleta().every(c => c.ocupada));
+
+  /**
+   * Apagar a última categoria deixa o visitante sem conseguir criar lembrete —
+   * `categoriaId` é obrigatório. O backend permite; a tela não oferece.
+   */
+  protected readonly podeExcluirCategoria = computed(() => this.categorias().length > 1);
+
+  /** O que impede salvar a categoria, em texto — vazio quando está tudo certo. */
+  protected readonly impedimentoCategoria = computed(() => {
+    const nome = this.catNome().trim();
+    if (!nome) return 'dê um nome à categoria';
+    if (nome.length > MAX_NOME_CATEGORIA)
+      return `o nome cabe em ${MAX_NOME_CATEGORIA} caracteres`;
+    if (!this.catCor()) return 'escolha uma cor';
+    return '';
+  });
+
+  /**
+   * Os erros das rotas de categoria em português da tela.
+   *
+   * O 422 é o caso que obriga: a mensagem do servidor vem quebrada ("Erro ao
+   * remover item. 
+Detalhes...") e é um defeito conhecido do backend. Mostrar
+   * o texto dele seria repassar o defeito ao visitante.
+   */
+  protected readonly falhaCategoria = computed(() => {
+    const f = this.falha();
+    if (!f) return '';
+    switch (f.status) {
+      case 422:
+        return 'Esta categoria ainda está sendo usada por algum lembrete. Troque a categoria dele primeiro.';
+      case 409:
+        return 'Você já tem uma categoria com essa cor. Escolha outra.';
+      case 404:
+        return 'Esta categoria não existe mais nesta sessão.';
+      default:
+        return resumoDosCampos(f.campos) || f.mensagem;
+    }
+  });
+
+  /**
+   * Lido da lista, não guardado: depois do PATCH o lembrete é substituído em
+   * memória, e uma cópia congelada aqui mostraria a categoria antiga.
+   */
+  protected readonly categoriaAlvo = computed<Lembrete | null>(
+    () => this.lembretes().find(l => l.uuid === this.categoriaAlvoId()) ?? null,
+  );
+
   ngOnInit(): void {
     this.funil.registrar('agendador_aberto');
     void this.store.iniciar().then(() => {
@@ -368,7 +453,7 @@ export class RoutinePusherComponent implements OnInit {
   // ---- formulário ----------------------------------------------------------
 
   protected abrirFormulario(): void {
-    if (this.noLimite()) return;
+    if (this.noLimite() || this.semCategorias()) return;
     this.store.limparFalha();
     this.editandoId.set(null);
     const inicial = { ...FORMULARIO_VAZIO, categoriaId: this.categorias()[0]?.id ?? null };
@@ -476,12 +561,106 @@ export class RoutinePusherComponent implements OnInit {
 
   // ---- categorias ----------------------------------------------------------
 
-  protected abrirCategorias(): void {
+  /**
+   * Com `uuid`, o painel abre para escolher a categoria daquele lembrete; sem
+   * ele, abre só para gerenciar a lista — que é o único caminho quando ainda
+   * não existe lembrete nenhum.
+   */
+  protected abrirCategorias(uuid: string | null = null): void {
+    this.store.limparFalha();
+    this.categoriaAlvoId.set(uuid);
+    this.catEditorAberto.set(false);
     this.categoriasAberto.set(true);
   }
 
   protected fecharCategorias(): void {
     this.categoriasAberto.set(false);
+    this.categoriaAlvoId.set(null);
+    this.catEditorAberto.set(false);
+  }
+
+  /**
+   * Troca a categoria do lembrete pelo `PATCH /detalhes`: preserva a série e o
+   * status, ao contrário do `PUT`. Título e descrição vão como o servidor os
+   * tem — este caminho não passa pelo formulário e não deve inventar texto.
+   */
+  protected async escolherCategoria(categoria: Categoria): Promise<void> {
+    const alvo = this.categoriaAlvo();
+    if (!alvo || this.enviando()) return;
+
+    if (categoria.id === alvo.categoria.id) {
+      this.fecharCategorias();
+      return;
+    }
+
+    const salvo = await this.store.atualizarDetalhes(alvo.uuid, {
+      titulo: alvo.titulo,
+      descricao: alvo.descricao,
+      categoriaId: categoria.id,
+    });
+    if (salvo) this.fecharCategorias();
+  }
+
+  /** O clique na linha: escolher, quando há lembrete alvo; editar, quando não há. */
+  protected acionarCategoria(categoria: Categoria): void {
+    if (this.categoriaAlvo()) void this.escolherCategoria(categoria);
+    else this.editarCategoria(categoria);
+  }
+
+  protected novaCategoria(): void {
+    if (this.paletaEsgotada()) return;
+    this.store.limparFalha();
+    this.catEditandoId.set(null);
+    this.catNome.set('');
+    this.catCor.set(this.paleta().find(c => !c.ocupada)?.hex ?? '');
+    this.catEditorAberto.set(true);
+  }
+
+  protected editarCategoria(categoria: Categoria): void {
+    this.store.limparFalha();
+    this.catEditandoId.set(categoria.id);
+    this.catNome.set(categoria.nome);
+    this.catCor.set(categoria.cor);
+    this.catEditorAberto.set(true);
+  }
+
+  protected fecharEditorCategoria(): void {
+    this.catEditorAberto.set(false);
+    this.store.limparFalha();
+  }
+
+  /**
+   * `fatorOrdem` vai sempre explícito: omitir manda zero, e zero colide com
+   * quem já estiver lá. Ao criar, a categoria entra no fim da lista; ao editar,
+   * mantém a posição que tinha — a tela não reordena, porque trocar duas
+   * posições sob índice único exige um valor temporário e três chamadas.
+   */
+  protected async salvarCategoria(): Promise<void> {
+    if (this.enviando() || this.impedimentoCategoria()) return;
+
+    const id = this.catEditandoId();
+    const atual = id === null ? null : this.categorias().find(c => c.id === id);
+    const entrada = {
+      nome: this.catNome().trim(),
+      cor: this.catCor(),
+      fatorOrdem: atual ? atual.fatorOrdem : this.store.proximaOrdem(),
+    };
+
+    const salva =
+      id === null
+        ? await this.store.criarCategoria(entrada)
+        : await this.store.atualizarCategoria(id, entrada);
+
+    if (!salva) return;
+    this.catEditorAberto.set(false);
+    // Criada a partir da tela travada (sem categoria nenhuma), o formulário de
+    // lembrete precisa nascer apontando para ela.
+    if (this.fCategoria() === null) this.fCategoria.set(salva.id);
+  }
+
+  protected async removerCategoria(categoria: Categoria): Promise<void> {
+    if (this.enviando() || !this.podeExcluirCategoria()) return;
+    await this.store.excluirCategoria(categoria.id);
   }
 
   protected dispensarConvite(): void {
@@ -505,7 +684,8 @@ export class RoutinePusherComponent implements OnInit {
 
   @HostListener('document:keydown.escape')
   protected onEscape(): void {
-    if (this.categoriasAberto()) this.fecharCategorias();
+    if (this.catEditorAberto()) this.fecharEditorCategoria();
+    else if (this.categoriasAberto()) this.fecharCategorias();
     else if (this.formAberto()) this.fecharFormulario();
     else this.open.set(false);
   }

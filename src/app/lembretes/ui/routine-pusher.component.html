@@ -93,7 +93,11 @@
           <div class="rp-vazio">
             <p class="rp-vazio__titulo">Nenhum lembrete ainda.</p>
             <p class="rp-vazio__texto">
-              Descreva um em português ali embaixo — ou toque num dos exemplos.
+              @if (semCategorias()) {
+                Crie uma categoria primeiro — todo lembrete precisa de uma.
+              } @else {
+                Descreva um em português ali embaixo — ou toque num dos exemplos.
+              }
             </p>
           </div>
         </div>
@@ -113,9 +117,9 @@
                         type="button"
                         class="rp-categoria"
                         [style.--cor-categoria]="card.cor"
-                        (click)="abrirCategorias()"
-                        [attr.aria-label]="'categoria ' + card.categoria + ' — gerenciar categorias'"
-                        title="gerenciar categorias">
+                        (click)="abrirCategorias(card.id)"
+                        [attr.aria-label]="'categoria ' + card.categoria + ' — trocar categoria'"
+                        title="trocar a categoria deste lembrete">
                         <span class="rp-categoria__ponto"></span>
                         {{ card.categoria }}
                       </button>
@@ -189,11 +193,20 @@
       <section class="rp-examples">
         <div class="rp-sectionhead">
           <span class="rp-label">{{ vazio() ? 'exemplos' : 'seus lembretes' }}</span>
-          <button
-            type="button"
-            class="rp-reset"
-            [disabled]="noLimite()"
-            (click)="abrirFormulario()">+ pelo formulário</button>
+          <span class="rp-sectionhead__acoes">
+            <!-- O selo de um lembrete é a outra porta do painel, mas ela some
+                 quando não há lembrete — e é justo aí que o visitante pode
+                 precisar criar a primeira categoria. -->
+            <button
+              type="button"
+              class="rp-reset rp-reset--cats"
+              (click)="abrirCategorias()">categorias</button>
+            <button
+              type="button"
+              class="rp-reset rp-reset--form"
+              [disabled]="noLimite() || semCategorias()"
+              (click)="abrirFormulario()">+ pelo formulário</button>
+          </span>
         </div>
         <ul class="rp-list">
           @if (vazio()) {
@@ -201,7 +214,13 @@
                  preenche a frase, que é o primeiro degrau do funil. -->
             @for (s of SUGESTOES; track s) {
               <li>
-                <button type="button" class="rp-row" (click)="usarSugestao(s)">
+                <!-- Sem categoria o compositor sai da tela; o exemplo encheria
+                     um campo invisível e o clique não faria nada. -->
+                <button
+                  type="button"
+                  class="rp-row"
+                  [disabled]="semCategorias()"
+                  (click)="usarSugestao(s)">
                   <span class="rp-row__left">
                     <span class="rp-row__dot"></span>
                     <span class="rp-row__label">{{ s }}</span>
@@ -272,6 +291,19 @@
     }
 
     <section class="rp-composer">
+      @if (semCategorias()) {
+        <!-- `categoriaId` é obrigatório ao criar, e a lista está vazia: o campo
+             de frase só levaria a um 404. Melhor mandar resolver a causa. -->
+        <div class="rp-composer__box rp-composer__box--travado">
+          <p class="rp-travado__titulo">Você não tem nenhuma categoria.</p>
+          <p class="rp-travado__texto">
+            Todo lembrete precisa de uma. Crie a primeira e o campo de frase volta.
+          </p>
+          <button type="button" class="rp-primary" (click)="abrirCategorias()">
+            criar categoria
+          </button>
+        </div>
+      } @else {
       <div class="rp-composer__box">
         <textarea
           rows="3"
@@ -307,6 +339,7 @@
           </button>
         </div>
       </div>
+      }
     </section>
 
     <p class="rp-persistencia rp-mono">
@@ -366,8 +399,8 @@
               type="button"
               class="rp-categoria"
               [style.--cor-categoria]="alvo.categoria.cor"
-              (click)="abrirCategorias()"
-              title="gerenciar categorias">
+              (click)="abrirCategorias(alvo.uuid)"
+              title="trocar a categoria deste lembrete">
               <span class="rp-categoria__ponto"></span>
               {{ alvo.categoria.nome }}
             </button>
@@ -658,12 +691,17 @@
       [class.rp-panel--sheet]="isMobile()"
       role="dialog"
       aria-modal="true"
-      aria-label="categorias"
+      [attr.aria-label]="categoriaAlvo() ? 'escolher categoria do lembrete' : 'suas categorias'"
       (click)="$event.stopPropagation()">
       <div class="rp-panel__head">
         <div class="rp-panel__title">
-          <span class="rp-label">categorias</span>
-          <span class="rp-panel__name">{{ categorias().length }} fixas</span>
+          @if (categoriaAlvo(); as alvoCat) {
+            <span class="rp-label">categoria de</span>
+            <span class="rp-panel__name">{{ alvoCat.titulo }}</span>
+          } @else {
+            <span class="rp-label">suas categorias</span>
+            <span class="rp-panel__name">{{ categorias().length }} nesta sessão</span>
+          }
         </div>
         <button type="button" class="rp-close" (click)="fecharCategorias()" aria-label="fechar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -672,20 +710,147 @@
         </button>
       </div>
 
-      <ul class="rp-cats">
-        @for (c of categorias(); track c.id) {
-          <li class="rp-cat">
-            <span class="rp-cat__cor" [style.background]="c.cor"></span>
-            <span class="rp-cat__nome">{{ c.nome }}</span>
-            <span class="rp-cat__cor-hex rp-mono">{{ c.cor }}</span>
-          </li>
-        }
-      </ul>
+      @if (catEditorAberto()) {
+        <div class="rp-form">
+          <label class="rp-campo">
+            <span class="rp-label">nome</span>
+            <input
+              type="text"
+              class="rp-input"
+              [class.rp-input--erro]="!!erroDe()['nome']"
+              [value]="catNome()"
+              [attr.maxlength]="MAX_NOME_CATEGORIA"
+              (input)="catNome.set($any($event.target).value)"
+              placeholder="Financeiro" />
+            <span class="rp-campo__contador rp-mono">
+              {{ catNome().length }}/{{ MAX_NOME_CATEGORIA }}
+            </span>
+          </label>
 
-      <p class="rp-panel__note rp-mono">
-        as categorias são definidas pelo servidor e valem para todos os visitantes — o
-        agendador só as lê. escolha a categoria de cada lembrete no formulário.
-      </p>
+          <div class="rp-campo">
+            <span class="rp-label">cor <span class="rp-muted-2">(uma por categoria)</span></span>
+            <div class="rp-paleta">
+              <!-- Paleta fechada, e as cores que já estão em uso vêm desabilitadas:
+                   `cor` é única por visitante, então escolher uma repetida só
+                   levaria a um 409 que ele não teria como prever. -->
+              @for (c of paleta(); track c.hex) {
+                <button
+                  type="button"
+                  class="rp-swatch"
+                  [class.rp-swatch--ativa]="c.hex === catCor()"
+                  [style.--cor-categoria]="c.hex"
+                  [disabled]="c.ocupada"
+                  (click)="catCor.set(c.hex)"
+                  [attr.aria-pressed]="c.hex === catCor()"
+                  [attr.aria-label]="c.ocupada ? c.nome + ', já usada por outra categoria' : c.nome"
+                  [attr.title]="c.ocupada ? c.nome + ' — já usada' : c.nome"></button>
+              }
+            </div>
+          </div>
+
+          @if (impedimentoCategoria(); as pendencia) {
+            <!-- Nota, não erro: o editor abre com o nome vazio, e pintar isso de
+                 erro seria repreender o visitante por algo que ele ainda nem
+                 teve chance de fazer. Quem barra o salvamento é o botão. -->
+            <p class="rp-form__nota rp-mono">{{ pendencia }}</p>
+          }
+          @if (falha()) {
+            <p class="rp-form__erro rp-mono" role="alert">{{ falhaCategoria() }}</p>
+          }
+        </div>
+
+        <div class="rp-panel__actions">
+          <button
+            type="button"
+            class="rp-primary"
+            [disabled]="enviando() || !!impedimentoCategoria()"
+            (click)="salvarCategoria()">
+            {{ enviando()
+                ? 'salvando…'
+                : catEditandoId() ? 'salvar categoria' : 'criar categoria' }}
+          </button>
+          <button type="button" class="rp-secondary rp-mono" (click)="fecharEditorCategoria()">
+            cancelar
+          </button>
+        </div>
+      } @else {
+        <ul class="rp-cats">
+          @for (c of categorias(); track c.id) {
+            <!-- A linha é o container e o miolo é um botão: os ícones ✎ ✕
+                 precisam ser clicáveis por si, e <button> dentro de <button>
+                 é inválido. -->
+            <li class="rp-cat" [class.rp-cat--atual]="c.id === idCategoriaAlvo()">
+              <button
+                type="button"
+                class="rp-cat__main"
+                [disabled]="enviando()"
+                (click)="acionarCategoria(c)"
+                [attr.aria-label]="categoriaAlvo()
+                  ? 'usar a categoria ' + c.nome + ' neste lembrete'
+                  : 'editar a categoria ' + c.nome">
+                <span class="rp-cat__cor" [style.background]="c.cor"></span>
+                <span class="rp-cat__nome">{{ c.nome }}</span>
+                @if (c.id === idCategoriaAlvo()) {
+                  <svg class="rp-cat__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M5 12.5l4.5 4.5L19 7.5"></path>
+                  </svg>
+                }
+              </button>
+
+              <button
+                type="button"
+                class="rp-cat__acao"
+                [disabled]="enviando()"
+                (click)="editarCategoria(c)"
+                [attr.aria-label]="'renomear ou recolorir ' + c.nome"
+                title="editar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"></path>
+                  <path d="M14.5 6.5l3 3"></path>
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                class="rp-cat__acao rp-cat__acao--excluir"
+                [disabled]="enviando() || !podeExcluirCategoria()"
+                (click)="removerCategoria(c)"
+                [attr.aria-label]="'excluir a categoria ' + c.nome"
+                [attr.title]="podeExcluirCategoria()
+                  ? 'excluir'
+                  : 'sem categoria não dá para criar lembrete — esta é a última'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+                  <path d="M7 7l10 10M17 7L7 17"></path>
+                </svg>
+              </button>
+            </li>
+          } @empty {
+            <li class="rp-cat rp-cat--vazia">
+              <span class="rp-mono rp-muted">
+                nenhuma categoria — crie uma para voltar a criar lembretes.
+              </span>
+            </li>
+          }
+        </ul>
+
+        @if (falha()) {
+          <p class="rp-form__erro rp-mono" role="alert">{{ falhaCategoria() }}</p>
+        }
+
+        <button
+          type="button"
+          class="rp-secondary rp-mono rp-cats__nova"
+          [disabled]="paletaEsgotada() || enviando()"
+          (click)="novaCategoria()">
+          {{ paletaEsgotada() ? 'todas as cores da paleta estão em uso' : '+ nova categoria' }}
+        </button>
+
+        <p class="rp-panel__note rp-mono">
+          as categorias são suas e valem só nesta sessão anônima — outro visitante
+          tem a lista dele. a que estiver em uso por algum lembrete não pode ser
+          excluída.
+        </p>
+      }
     </div>
   </div>
 }

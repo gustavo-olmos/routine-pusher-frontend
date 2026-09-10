@@ -23,6 +23,24 @@ export interface Categoria {
 }
 
 /**
+ * Corpo de `POST /categoria` e `PUT /categoria/{id}` — os três campos são
+ * obrigatórios nos dois verbos.
+ *
+ * `fatorOrdem` é um `int` sem default no JSON: omitir não significa "mantém",
+ * significa **zero**. Duas categorias com zero colidem e a segunda toma 409, e
+ * isso vale também no `PUT` — renomear sem reenviar a posição derruba a
+ * categoria para 0 e conflita com quem já estiver lá. Conferido por curl.
+ */
+export interface CategoriaEntrada {
+  /** Máximo de 25 caracteres; acima disso o servidor devolve 400. */
+  nome: string;
+  /** Único na lista do visitante, e a comparação do servidor pega a caixa. */
+  cor: string;
+  /** Único na lista do visitante — é a posição de exibição. */
+  fatorOrdem: number;
+}
+
+/**
  * Como o lembrete se repete. Escolha UMA estratégia — os intervalos moram aqui,
  * não em `notificacao`, e misturar dois eixos é o caminho mais curto para o 422.
  *

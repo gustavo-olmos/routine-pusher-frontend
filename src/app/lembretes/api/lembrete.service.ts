@@ -6,6 +6,7 @@ import { API_V1 } from '../lembretes.config';
 import { agoraLocalIso } from '../dominio/datas';
 import {
   Categoria,
+  CategoriaEntrada,
   DetalhesEntrada,
   FraseEntrada,
   Lembrete,
@@ -44,8 +45,14 @@ export class SessaoService {
 }
 
 /**
- * Categorias: cenário fixo, semeado no banco e igual para todos os visitantes.
- * A escrita (POST/PUT/DELETE) exige login e não está disponível — o front só lê.
+ * Categorias: desde set/2026 são de cada visitante e editáveis — a escrita
+ * deixou de exigir login. Toda rota é escopada pelo cookie da sessão, e uma
+ * categoria de outro visitante responde 404 em GET, PUT e DELETE. Esse 404 é o
+ * isolamento funcionando, não um erro estranho.
+ *
+ * A sessão nova nasce com duas ("Importante" e "Urgente"), que são linhas comuns
+ * da lista: podem ser renomeadas, recoloridas e apagadas como qualquer outra.
+ * Nenhum id pode ser chumbado — eles mudam a cada sessão.
  */
 @Injectable()
 export class CategoriaService {
@@ -54,6 +61,28 @@ export class CategoriaService {
   /** Por `fatorOrdem`: é o campo que o backend usa para a ordem de exibição. */
   listar(): Observable<Categoria[]> {
     return this.http.get<Categoria[]>(`${API_V1}/categoria`, { params: ordenacao('fatorOrdem') });
+  }
+
+  /** 200 com a categoria criada. 409 se `cor` ou `fatorOrdem` já existirem. */
+  criar(entrada: CategoriaEntrada): Observable<Categoria> {
+    return this.http.post<Categoria>(`${API_V1}/categoria`, entrada);
+  }
+
+  /** Mesmo corpo do POST — mandar os três campos sempre, inclusive `fatorOrdem`. */
+  atualizar(id: number, entrada: CategoriaEntrada): Observable<Categoria> {
+    return this.http.put<Categoria>(`${API_V1}/categoria/${id}`, entrada);
+  }
+
+  /**
+   * 204 sem corpo; `responseType: 'text'` evita o parse de vazio.
+   *
+   * 422 quando ainda há lembretes associados. A mensagem que vem junto está
+   * quebrada no servidor ("Erro ao remover item. 
+Detalhes..."), então a tela
+   * trata pelo status e escreve a própria frase.
+   */
+  excluir(id: number): Observable<unknown> {
+    return this.http.delete(`${API_V1}/categoria/${id}`, { responseType: 'text' });
   }
 }
 

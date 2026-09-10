@@ -46,6 +46,37 @@ export const INTERVALO_MINIMO_MINUTOS = 5;
 export const MAX_TITULO = 255;
 export const MAX_DESCRICAO = 255;
 export const MAX_FRASE = 500;
+export const MAX_NOME_CATEGORIA = 25;
+
+/**
+ * Paleta fechada para as categorias do visitante.
+ *
+ * `cor` é única dentro da lista de cada um: com um seletor livre, escolher um
+ * hex já usado devolve 409 e o visitante não teria como adivinhar quais estão
+ * livres. Com paleta, a tela mostra o que sobrou e o 409 vira inalcançável.
+ *
+ * Consequência aceita: o teto de categorias passa a ser o tamanho da paleta.
+ *
+ * A unicidade no servidor é sensível à caixa — `#3949ab` e `#3949AB` convivem —
+ * então os hex daqui são maiúsculos e a comparação normaliza antes de comparar.
+ */
+export const PALETA: readonly { hex: string; nome: string }[] = [
+  { hex: '#E53935', nome: 'vermelho' },
+  { hex: '#D81B60', nome: 'rosa' },
+  { hex: '#8E24AA', nome: 'roxo' },
+  { hex: '#5E35B1', nome: 'violeta' },
+  { hex: '#3949AB', nome: 'índigo' },
+  { hex: '#1E88E5', nome: 'azul' },
+  { hex: '#039BE5', nome: 'azul-claro' },
+  { hex: '#00ACC1', nome: 'ciano' },
+  { hex: '#00897B', nome: 'verde-azulado' },
+  { hex: '#43A047', nome: 'verde' },
+  { hex: '#7CB342', nome: 'verde-limão' },
+  { hex: '#F9A825', nome: 'âmbar' },
+  { hex: '#FB8C00', nome: 'laranja' },
+  { hex: '#6D4C41', nome: 'marrom' },
+  { hex: '#546E7A', nome: 'cinza-azulado' },
+];
 
 /**
  * Sugestões da tela vazia. Tema financeiro de propósito: é o primeiro degrau do
@@ -59,11 +90,16 @@ export const SUGESTOES: readonly string[] = [
 ];
 
 /**
- * O convite ao simulador aparece quando o lembrete recém-criado cai na categoria
- * de casa ou quando a frase fala de dívida. Casar aqui, num lugar só, para o
- * gatilho ser auditável junto com a métrica do funil.
+ * O convite ao simulador aparece quando a frase, o título ou o nome da categoria
+ * falam de dinheiro. Casar aqui, num lugar só, para o gatilho ser auditável
+ * junto com a métrica do funil.
+ *
+ * Até set/2026 havia um segundo gatilho, `GATILHO_CATEGORIA = 'Casa'`, apoiado
+ * na lista global de categorias do servidor. Aquela lista deixou de existir: as
+ * categorias agora são criadas por cada visitante, e nenhuma se chama 'Casa' por
+ * padrão. Comparar por nome fixo virou um gatilho que nunca dispara — daí a
+ * mesma expressão passar a valer também para o nome da categoria, que o
+ * visitante escolhe.
  */
 export const GATILHO_FRASE =
   /parcel|financiam|fatura|empr[ée]stim|presta[çc][ãa]o|j[uú]ros|d[íi]vida|im[óo]vel|casa pr[óo]pria/i;
-
-export const GATILHO_CATEGORIA = 'Casa';

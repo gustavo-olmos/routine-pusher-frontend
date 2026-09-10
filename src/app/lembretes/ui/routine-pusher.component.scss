@@ -1631,7 +1631,7 @@ button.rp-cta {
   flex-wrap: wrap;
 }
 
-/* ---- gerenciador de categorias ------------------------------------------- */
+/* ---- escolha de categoria ------------------------------------------------- */
 
 .rp-panel--categorias { width: 440px; }
 
@@ -1644,15 +1644,91 @@ button.rp-cta {
   gap: 6px;
 }
 
+/* A linha é o container; o miolo é o botão. As categorias agora são do
+   visitante e editáveis, então cada uma carrega ✎ e ✕ ao lado. */
 .rp-cat {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 8px 12px;
-  border: 1px solid var(--glass-border-soft);
-  border-radius: 10px;
-  background: var(--glass-fill-quiet);
+  gap: 6px;
+
+  &--vazia {
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px dashed var(--hair);
+    border-radius: 10px;
+  }
+
+  &__main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--glass-border-soft);
+    border-radius: 10px;
+    background: var(--glass-fill-quiet);
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    &:disabled { cursor: progress; opacity: 0.55; }
+  }
+
+  /* A que já vale para o lembrete aberto: fica marcada e não é um destino. */
+  &--atual &__main {
+    border-color: var(--ok);
+    background: var(--ok-soft);
+    cursor: default;
+
+    &:hover:not(:disabled) {
+      transform: none;
+      border-color: var(--ok);
+      background: var(--ok-soft);
+    }
+  }
+
+  &__acao {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--idle);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-4);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.15s;
+
+    svg { width: 14px; height: 14px; }
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    &:active:not(:disabled) { transform: scale(0.9); }
+
+    &:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    &--excluir:hover:not(:disabled) {
+      border-color: var(--danger);
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+  }
 
   &__cor {
     flex: none;
@@ -1670,14 +1746,96 @@ button.rp-cta {
     white-space: nowrap;
   }
 
-  /* O hex vem do servidor e é o que o front usa nos selos — mostrar deixa a
-     origem da cor explícita, já que o visitante não pode mudá-la. */
-  &__cor-hex {
+  &__check {
     flex: none;
-    font-size: 10.5px;
-    color: var(--text-5);
-    text-transform: uppercase;
+    width: 15px;
+    height: 15px;
+    color: var(--ok);
   }
+}
+
+/* Exemplo inerte enquanto não há categoria: sem a marca, ele continuaria
+   parecendo clicável e o clique não faria nada. */
+button.rp-row:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.rp-cats__nova {
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 14px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ---- paleta de cores ------------------------------------------------------ */
+
+.rp-paleta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rp-swatch {
+  width: 30px;
+  height: 30px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--cor-categoria);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover:not(:disabled) { transform: translateY(-2px); }
+
+  &--ativa {
+    border-color: var(--text);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--cor-categoria) 30%, transparent);
+  }
+
+  /* Cor já usada por outra categoria: some quase toda, porque escolhê-la só
+     levaria ao 409 da unicidade. */
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.18;
+    transform: none;
+  }
+}
+
+.rp-campo__contador {
+  align-self: flex-end;
+  font-size: 10px;
+  color: var(--text-5);
+}
+
+/* ---- sem categoria nenhuma ------------------------------------------------ */
+
+.rp-sectionhead__acoes {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.rp-composer__box--travado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 20px;
+}
+
+.rp-travado__titulo {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rp-travado__texto {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  color: var(--text-3);
 }
 
 .rp-card__titulo {
