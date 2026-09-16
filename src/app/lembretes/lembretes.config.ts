@@ -23,8 +23,16 @@ export const API_BASE = (() => {
 
 export const API_V1 = `${API_BASE}/api/v1`;
 
-/** Destino dos pontos de passagem. Trocar pela rota real do simulador no fork. */
-export const SIMULADOR_URL = '/simulador';
+/**
+ * Destino dos pontos de passagem do funil.
+ *
+ * Absoluto porque hoje o agendador e o simulador são deploys separados. Quando
+ * os dois virarem o mesmo projeto, isto vira o caminho relativo e nada mais
+ * muda — os três links e a métrica de saída leem daqui.
+ */
+// `www` de propósito: o domínio nu devolve 308 para cá. Sem isso, todo clique
+// do funil paga um salto de redirecionamento antes de chegar.
+export const SIMULADOR_URL = 'https://www.rotafin.com.br/financiamento-imovel';
 
 /** Tetos por sessão anônima impostos pelo backend — estourar devolve 429. */
 export const LIMITE_LEMBRETES = 10;
