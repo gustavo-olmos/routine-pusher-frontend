@@ -389,6 +389,9 @@ Detalhes...") e é um defeito conhecido do backend. Mostrar
   ngOnInit(): void {
     this.funil.registrar('agendador_aberto');
     this.notificacoes.aoReceber = titulo => this.alertarDisparo(titulo);
+    // O servidor não guarda o que disparou com o stream fora; relistar ao menos
+    // traz status e próximas execuções atualizados.
+    this.notificacoes.aoReconectar = () => void this.store.recarregar();
     void this.store.iniciar().then(() => {
       this.selecionarPrimeiro();
       this.notificacoes.conectar();

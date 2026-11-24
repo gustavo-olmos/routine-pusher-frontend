@@ -95,12 +95,17 @@ class NotificacoesFalsas {
   readonly avisos = signal<never[]>([]);
   readonly conectado = signal(false);
   aoReceber: ((titulo: string) => void) | null = null;
+  aoReconectar: (() => void) | null = null;
   conectar(): void {}
   desconectar(): void {}
   dispensar(): void {}
   /** Simula um evento chegando pelo stream. */
   disparar(titulo: string): void {
     this.aoReceber?.(titulo);
+  }
+  /** Simula o stream voltando depois de ter caído. */
+  reconectar(): void {
+    this.aoReconectar?.();
   }
 }
 
@@ -685,6 +690,19 @@ describe('RoutinePusherComponent', () => {
       expect(alerta().avisados[0].titulo).toBe('Pagar a fatura do cartão');
       // O stream manda só o título; o corpo vem do lembrete em memória.
       expect(alerta().avisados[0].corpo).toContain('Casa');
+    }));
+
+    it('o stream voltando relista os lembretes — o que disparou fora se perdeu', fakeAsync(() => {
+      abrir([]);
+      expect(el.querySelectorAll('.rp-card').length).toBe(0);
+
+      stream().reconectar();
+
+      http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([FATURA]);
+      tick();
+      fixture.detectChanges();
+
+      expect(el.textContent).toContain('Pagar a fatura do cartão');
     }));
 
     it('título que não casa com nenhum lembrete ainda avisa', fakeAsync(() => {

@@ -77,7 +77,7 @@ origem em `CORS_ALLOWED_ORIGINS` no backend.
 | `api/credenciais.interceptor.ts` | `withCredentials` em tudo que vai para a API. |
 | `api/erros.ts` | Normaliza erro do HttpClient (429, `camposInvalidos`, falha de rede). |
 | `api/lembrete.service.ts` | Sessão, categorias e CRUD de lembretes. |
-| `api/notificacoes.service.ts` | SSE, fora da zone do Angular. |
+| `api/notificacoes.service.ts` | SSE, fora da zone do Angular. Reabre com backoff quando o servidor recusa o stream, e avisa a tela ao voltar para ela relistar. |
 | `dominio/cron.ts` | Traduz a recorrência para cron — e admite quando não dá. |
 | `dominio/datas.ts` | Formatação e o ISO **local** que o backend espera. |
 | `estado/lembretes.store.ts` | Fonte única da tela. O componente não faz HTTP. |
