@@ -13,19 +13,6 @@ financiamento. Quando cumprir o papel, sai inteiro.
 É só isso. Nada aqui é provido em `app.config.ts`, nenhum serviço vaza para o
 resto do site e não há estado compartilhado com o simulador.
 
-## Como levar para o projeto do simulador
-
-1. Copiar a pasta `lembretes/` para `src/app/`.
-2. Acrescentar a rota:
-   ```ts
-   { path: 'lembretes', loadChildren: () => import('./lembretes/lembretes.routes') }
-   ```
-3. Em `lembretes.config.ts`, apontar `SIMULADOR_URL` para a rota real.
-4. Garantir as fontes IBM Plex no `index.html` (Sans 400/500/600 e Mono 400/500/600).
-5. Copiar a entrada de `assets` do `rp-notificacoes-sw.js` do `angular.json`.
-
-Os únicos pontos que tocam o mundo de fora estão em `lembretes.config.ts`.
-
 ## Isolamento
 
 `lembretes.routes.ts` declara `provideHttpClient` **no injetor da rota**, não no
@@ -49,7 +36,9 @@ traiçoeiro: criar responde 200, listar responde `[]`, sem erro nenhum.
 `API_BASE` já resolve isso sozinho pelo hostname.
 
 Pelo mesmo motivo, preview da Vercel (`*.vercel.app`) não terá sessão —
-`vercel.app` é public suffix. Só `rotafin.com.br` e `www.rotafin.com.br`.
+`vercel.app` é public suffix. O front só funciona publicado num subdomínio de
+`rotafin.com.br`, e cada origem precisa estar em `CORS_ALLOWED_ORIGINS` no
+backend; fora da lista, o preflight leva 403.
 
 Limites por sessão: 10 lembretes, 10 chamadas de IA, 48h de inatividade
 (`SESSAO_HORAS` em `lembretes.config.ts`). Qualquer chamada renova o prazo. O
@@ -58,30 +47,31 @@ vira outro.
 
 ## Publicação
 
-O build de produção sai com `baseHref: '/lembretes/'` e os arquivos em
-`dist/routine-pusher-frontend/lembretes/`, publicados como projeto próprio na
-Vercel (`vercel.json` na raiz). O endereço público, `www.rotafin.com.br/lembretes`,
-é um rewrite no `vercel.json` do simulador que repassa o caminho para esse deploy.
+Projeto próprio na Vercel, em `https://lembretes.rotafin.com.br`, servido na
+raiz. O `vercel.json` da raiz roda `npm run build` e devolve `index.html` para
+qualquer caminho que não seja arquivo.
 
-Caminho, e não subdomínio, porque para o navegador a origem continua sendo
-`www.rotafin.com.br`, a única que o CORS da API aceita. `lembretes.rotafin.com.br`
-leva 403 no preflight e ainda pediria um CNAME manual no registro.br. Pelo mesmo
-motivo, o endereço `*.vercel.app` do deploy abre a tela, mas a API o recusa.
+**O endereço do backend vem do `.env`** (`API_URL`). O Angular 17 não lê `.env`,
+então `scripts/build.mjs` carrega o arquivo e roda o build com a opção `define`,
+que troca o identificador `API_URL` pelo texto no bundle. Uma variável de
+ambiente de mesmo nome vence o arquivo, e o script recusa URL ausente ou sem
+`https`. Duas regras ficam de fora do `.env`:
 
-Duas consequências no código:
+- em `localhost` vale sempre `http://localhost:8080` (ver "Sessão");
+- `ng build` direto não passa pelo script; sem `API_URL`, a tela falha ao
+  carregar com uma mensagem dizendo isso, em vez de cair calada num endereço
+  chumbado.
 
-- o service worker é registrado por **caminho relativo**, que resolve contra o
-  `<base href>`. Com barra na frente ele sairia da pasta publicada e cairia no
-  simulador;
-- a ativação do worker é esperada na própria registration, e não em
-  `navigator.serviceWorker.ready`: quem abre `/lembretes` sem a barra final está
-  fora do escopo `/lembretes/`, e o `ready` nunca resolveria.
+Subdomínio, e não um `*.vercel.app`, por causa do cookie: só no mesmo site da
+API ele viaja como cookie próprio. Para um domínio novo funcionar, três coisas
+fora deste repo: o domínio no projeto da Vercel, o CNAME no registro.br e a
+origem em `CORS_ALLOWED_ORIGINS` no backend.
 
 ## Mapa
 
 | Arquivo | Papel |
 | --- | --- |
-| `lembretes.config.ts` | Base da API, limites, sugestões, gatilhos, URL do simulador. O único arquivo a tocar ao portar. |
+| `lembretes.config.ts` | Base da API (do `.env`, no build), limites, sugestões, gatilhos, URL do simulador. |
 | `lembretes.routes.ts` | Rota lazy + injetor isolado com todos os providers. |
 | `api/modelos.ts` | Contratos, conferidos contra as respostas reais. |
 | `api/credenciais.interceptor.ts` | `withCredentials` em tudo que vai para a API. |

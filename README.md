@@ -6,7 +6,7 @@ time, and the browser shows it with a sound and a system notification. It works 
 and English. No sign-up is needed: each visitor gets an anonymous session that expires after 48
 hours without use.
 
-**Live demo:** https://www.rotafin.com.br/lembretes
+**Live demo:** https://lembretes.rotafin.com.br
 
 **Backend:** https://github.com/gustavo-olmos/routine-pusher-backend (Java 17 · Spring Boot 3.3)
 
@@ -18,6 +18,9 @@ The interface is in Brazilian Portuguese. The sentence box also understands Engl
 - TypeScript 5.4 · RxJS 7 · SCSS
 - Server-Sent Events for reminders firing, and Web Notifications through a minimal service worker
 - Jasmine + Karma unit tests
-- Hosted on Vercel and served under rotafin.com.br through a rewrite
+- Hosted on Vercel
+
+The backend address comes from `API_URL` in [`.env`](.env) and is inlined at build time by
+`npm run build`.
 
 Design notes and API pitfalls (in Portuguese): [src/app/lembretes/README.md](src/app/lembretes/README.md)
