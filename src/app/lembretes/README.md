@@ -6,7 +6,9 @@ financiamento. Quando cumprir o papel, sai inteiro.
 ## Como remover
 
 1. `rm -rf src/app/lembretes/`
-2. Apagar a entrada `path: 'lembretes'` de `app.routes.ts`.
+2. Apagar a entrada do agendador em `app.routes.ts`.
+3. Apagar a entrada de `assets` do `rp-notificacoes-sw.js` no `angular.json`
+   (em `build` e em `test`).
 
 É só isso. Nada aqui é provido em `app.config.ts`, nenhum serviço vaza para o
 resto do site e não há estado compartilhado com o simulador.
@@ -20,6 +22,7 @@ resto do site e não há estado compartilhado com o simulador.
    ```
 3. Em `lembretes.config.ts`, apontar `SIMULADOR_URL` para a rota real.
 4. Garantir as fontes IBM Plex no `index.html` (Sans 400/500/600 e Mono 400/500/600).
+5. Copiar a entrada de `assets` do `rp-notificacoes-sw.js` do `angular.json`.
 
 Os únicos pontos que tocam o mundo de fora estão em `lembretes.config.ts`.
 
@@ -48,7 +51,31 @@ traiçoeiro: criar responde 200, listar responde `[]`, sem erro nenhum.
 Pelo mesmo motivo, preview da Vercel (`*.vercel.app`) não terá sessão —
 `vercel.app` é public suffix. Só `rotafin.com.br` e `www.rotafin.com.br`.
 
-Limites por sessão: 10 lembretes, 10 chamadas de IA, 30 min de inatividade.
+Limites por sessão: 10 lembretes, 10 chamadas de IA, 48h de inatividade
+(`SESSAO_HORAS` em `lembretes.config.ts`). Qualquer chamada renova o prazo. O
+cookie dura 7 dias, mas quem manda é o servidor: passadas as 48h, o visitante
+vira outro.
+
+## Publicação
+
+O build de produção sai com `baseHref: '/lembretes/'` e os arquivos em
+`dist/routine-pusher-frontend/lembretes/`, publicados como projeto próprio na
+Vercel (`vercel.json` na raiz). O endereço público, `www.rotafin.com.br/lembretes`,
+é um rewrite no `vercel.json` do simulador que repassa o caminho para esse deploy.
+
+Caminho, e não subdomínio, porque para o navegador a origem continua sendo
+`www.rotafin.com.br`, a única que o CORS da API aceita. `lembretes.rotafin.com.br`
+leva 403 no preflight e ainda pediria um CNAME manual no registro.br. Pelo mesmo
+motivo, o endereço `*.vercel.app` do deploy abre a tela, mas a API o recusa.
+
+Duas consequências no código:
+
+- o service worker é registrado por **caminho relativo**, que resolve contra o
+  `<base href>`. Com barra na frente ele sairia da pasta publicada e cairia no
+  simulador;
+- a ativação do worker é esperada na própria registration, e não em
+  `navigator.serviceWorker.ready`: quem abre `/lembretes` sem a barra final está
+  fora do escopo `/lembretes/`, e o `ready` nunca resolveria.
 
 ## Mapa
 
@@ -71,9 +98,10 @@ Limites por sessão: 10 lembretes, 10 chamadas de IA, 30 min de inatividade.
 
 - **`sortInfo=id` quebra em `/lembrete`** (400 "Erro ao comparar objetos: id"):
   o DTO tem `uuid`. Em `/categoria`, `id` funciona.
-- **`DELETE` responde texto puro**, não JSON — daí o `responseType: 'text'`.
-- **`PATCH` responde 200 com corpo vazio**: o estado novo só existe no servidor,
-  então toda mutação relista.
+- **`DELETE` responde 204 sem corpo**, não JSON — daí o `responseType: 'text'`,
+  que não tenta fazer parse do vazio.
+- **Concluir (`PATCH /lembrete/{uuid}`) responde 200 com corpo vazio**: o estado
+  novo só existe no servidor, então toda mutação relista.
 - **As listas voltam `null`**, não `[]` (`diasDaSemana: null` na resposta da IA).
 - **Request e response divergem**: manda `categoriaId`, recebe `categoria` objeto.
 - **Os intervalos moram em `recorrencia`**, nunca em `notificacao`.
