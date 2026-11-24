@@ -1,24 +1,33 @@
 /**
- * Ajustes do agendador. Módulo descartável: quando o recurso sair, some a pasta
- * `lembretes/` e a entrada de rota em `app.routes.ts` — mais nada.
- *
- * A base da API é resolvida em runtime de propósito, e não por `fileReplacements`
- * do angular.json: assim a pasta inteira é portável para o projeto do simulador
- * sem tocar na configuração de build de lá. Se aquele projeto já tiver
- * `environments/`, troque só esta constante pelo import correspondente.
+ * Ajustes do agendador. Os pontos que tocam o mundo de fora moram aqui.
  */
+
+/**
+ * Endereço de produção do backend, vindo do `.env` da raiz (`API_URL`).
+ *
+ * `scripts/build.mjs` lê o arquivo e passa o valor ao `ng build --define`, que
+ * troca este identificador pelo texto no bundle. Fora desse build — `ng serve`,
+ * testes — ele não existe, e `typeof` devolve `'undefined'` sem lançar.
+ */
+declare const API_URL: string | undefined;
 
 const LOCAIS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 /**
- * Em desenvolvimento o backend PRECISA ser o local. `localhost:4200` chamando
- * `api.rotafin.com.br` é cross-site, e o cookie de sessão é `SameSite=Lax`:
- * ele não viaja em XHR cross-site. O sintoma é silencioso — criar devolve 200 e
- * listar devolve `[]`, porque cada requisição nasce numa sessão nova.
+ * Em desenvolvimento o backend PRECISA ser o local, e por isso `localhost` vence
+ * o `.env`. `localhost:4200` chamando a API publicada é cross-site, e o cookie
+ * de sessão é `SameSite=Lax`: ele não viaja em XHR cross-site. O sintoma é
+ * silencioso — criar devolve 200 e listar devolve `[]`, porque cada requisição
+ * nasce numa sessão nova.
+ *
+ * Sem `API_URL` fora de `localhost` a falha é alta de propósito: cair calado
+ * num endereço chumbado esconderia um build feito por fora do script.
  */
 export const API_BASE = (() => {
   const host = typeof location !== 'undefined' ? location.hostname : '';
-  return LOCAIS.has(host) ? 'http://localhost:8080' : 'https://api.rotafin.com.br';
+  if (LOCAIS.has(host)) return 'http://localhost:8080';
+  if (typeof API_URL === 'string' && API_URL) return API_URL;
+  throw new Error('API_URL ausente: o build de produção lê o backend do .env — use `npm run build`.');
 })();
 
 export const API_V1 = `${API_BASE}/api/v1`;
