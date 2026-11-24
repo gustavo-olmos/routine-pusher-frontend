@@ -20,7 +20,10 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/routine-pusher-frontend",
+            "outputPath": {
+              "base": "dist/routine-pusher-frontend",
+              "browser": "lembretes"
+            },
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
@@ -56,7 +59,8 @@
                   "maximumError": "48kb"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "baseHref": "/lembretes/"
             },
             "development": {
               "optimization": false,

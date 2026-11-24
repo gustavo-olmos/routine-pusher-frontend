@@ -19,17 +19,28 @@
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', evento => evento.waitUntil(self.clients.claim()));
 
-/* Clicar no aviso traz de volta a aba que já existe, em vez de abrir outra. */
+/*
+ * Clicar no aviso traz de volta a aba que já existe, em vez de abrir outra.
+ *
+ * O endereço do agendador sai do escopo do próprio worker (`/lembretes/` em
+ * produção, `/` em desenvolvimento), e não de um caminho escrito à mão. O
+ * `startsWith` vai sem a barra final para casar também quem abriu `/lembretes`.
+ * `includeUncontrolled` traz as abas do site anfitrião, de mesma origem, e o
+ * filtro descarta essas.
+ */
 self.addEventListener('notificationclick', evento => {
   evento.notification.close();
+
+  const escopo = self.registration.scope;
+  const raiz = escopo.replace(/\/$/, '');
 
   evento.waitUntil(
     self.clients
       .matchAll({ type: 'window', includeUncontrolled: true })
       .then(janelas => {
-        const aberta = janelas.find(j => j.url.includes('/lembretes'));
+        const aberta = janelas.find(j => j.url.startsWith(raiz));
         if (aberta) return aberta.focus();
-        return self.clients.openWindow('/lembretes');
+        return self.clients.openWindow(escopo);
       }),
   );
 });

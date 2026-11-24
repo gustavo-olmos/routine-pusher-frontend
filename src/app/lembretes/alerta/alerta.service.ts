@@ -27,8 +27,13 @@ import { Injectable, signal } from '@angular/core';
  */
 export type EstadoPermissao = NotificationPermission | 'indisponivel';
 
-/** Caminho servido na raiz — ver a entrada de `assets` no angular.json. */
-const ARQUIVO_SW = '/rp-notificacoes-sw.js';
+/**
+ * Relativo de propósito: resolve contra o `<base href>`, então o worker vem de
+ * `/lembretes/rp-notificacoes-sw.js` em produção e de `/rp-notificacoes-sw.js`
+ * em desenvolvimento. Com barra na frente ele sairia da pasta publicada e cairia
+ * no site anfitrião. Ver a entrada de `assets` no angular.json.
+ */
+const ARQUIVO_SW = 'rp-notificacoes-sw.js';
 
 @Injectable()
 export class AlertaService {
@@ -81,8 +86,8 @@ export class AlertaService {
 
     const opcoes: NotificationOptions = {
       body: corpo,
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
+      icon: 'favicon.ico',
+      badge: 'favicon.ico',
       // Mesma tag: dois disparos seguidos trocam o aviso em vez de empilhar.
       tag: 'rp-lembrete',
       requireInteraction: false,
@@ -163,15 +168,40 @@ export class AlertaService {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null;
 
     try {
-      this.registro = await navigator.serviceWorker.register(ARQUIVO_SW);
-      // `register` resolve antes de o worker estar ativo; `showNotification`
-      // numa registration ainda instalando não mostra nada.
-      await navigator.serviceWorker.ready;
-      return this.registro;
+      const registro = await navigator.serviceWorker.register(ARQUIVO_SW);
+      // `register` resolve antes de o worker estar ativo, e `showNotification`
+      // numa registration sem worker ativo rejeita.
+      await ativacao(registro);
+      this.registro = registro;
+      return registro;
     } catch {
       return null;
     }
   }
+}
+
+/**
+ * Espera o worker DESTA registration ativar.
+ *
+ * Não serve `navigator.serviceWorker.ready`: ele espera a registration cujo
+ * escopo cobre a página, e o escopo aqui é `/lembretes/`. Quem entra por
+ * `/lembretes`, sem a barra final, está fora dele — e o `ready` nunca resolveria,
+ * travando o pedido de permissão junto.
+ */
+function ativacao(registro: ServiceWorkerRegistration): Promise<void> {
+  if (registro.active) return Promise.resolve();
+  const worker = registro.installing ?? registro.waiting;
+  if (!worker) return Promise.resolve();
+  return new Promise(pronto => {
+    const conferir = () => {
+      if (worker.state === 'activated' || worker.state === 'redundant') {
+        worker.removeEventListener('statechange', conferir);
+        pronto();
+      }
+    };
+    worker.addEventListener('statechange', conferir);
+    conferir();
+  });
 }
 
 function estadoInicial(): EstadoPermissao {
