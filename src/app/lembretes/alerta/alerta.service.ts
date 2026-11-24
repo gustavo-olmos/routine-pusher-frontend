@@ -28,10 +28,10 @@ import { Injectable, signal } from '@angular/core';
 export type EstadoPermissao = NotificationPermission | 'indisponivel';
 
 /**
- * Relativo de propósito: resolve contra o `<base href>`, então o worker vem de
- * `/lembretes/rp-notificacoes-sw.js` em produção e de `/rp-notificacoes-sw.js`
- * em desenvolvimento. Com barra na frente ele sairia da pasta publicada e cairia
- * no site anfitrião. Ver a entrada de `assets` no angular.json.
+ * Relativo de propósito: resolve contra o `<base href>`. Na raiz dá no mesmo que
+ * `/rp-notificacoes-sw.js`, mas continua certo se o agendador for servido sob um
+ * caminho — com barra na frente ele sairia da pasta publicada. Ver a entrada de
+ * `assets` no angular.json.
  */
 const ARQUIVO_SW = 'rp-notificacoes-sw.js';
 
@@ -184,9 +184,9 @@ export class AlertaService {
  * Espera o worker DESTA registration ativar.
  *
  * Não serve `navigator.serviceWorker.ready`: ele espera a registration cujo
- * escopo cobre a página, e o escopo aqui é `/lembretes/`. Quem entra por
- * `/lembretes`, sem a barra final, está fora dele — e o `ready` nunca resolveria,
- * travando o pedido de permissão junto.
+ * escopo cobre a página, e nada garante isso. Servido sob `/lembretes/`, quem
+ * entrasse por `/lembretes`, sem a barra final, ficaria fora do escopo — e o
+ * `ready` nunca resolveria, travando o pedido de permissão junto.
  */
 function ativacao(registro: ServiceWorkerRegistration): Promise<void> {
   if (registro.active) return Promise.resolve();

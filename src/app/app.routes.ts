@@ -1,10 +1,9 @@
 import { Routes } from '@angular/router';
 
 /**
- * Neste projeto o agendador é a aplicação inteira, então mora na raiz do router.
- * O `/lembretes` da URL pública vem do `baseHref` do build de produção (ver
- * angular.json), não de um segmento de rota — senão o endereço viraria
- * `/lembretes/lembretes`.
+ * Neste projeto o agendador é a aplicação inteira, então mora na raiz do router:
+ * o endereço público é `lembretes.rotafin.com.br/`, e um segmento `lembretes`
+ * aqui só repetiria o subdomínio.
  */
 export const routes: Routes = [
   // Agendador: módulo descartável e isolado. Sai daqui em uma linha.
