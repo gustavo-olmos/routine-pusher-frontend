@@ -5,7 +5,7 @@ import { Convite } from '../../estado/lembretes.store';
 import { OrigemSaida } from '../../funil/funil.service';
 import { SIMULADOR_URL } from '../../lembretes.config';
 import { PainelJsonComponent } from '../painel-json/painel-json.component';
-import { EXEMPLO_RASCUNHO, EXEMPLO_RESPOSTA } from './exemplos';
+import { EXEMPLO_RASCUNHO, EXEMPLO_RESPOSTA, FRASE_EXEMPLO } from './exemplos';
 
 /**
  * A seção abaixo do app: um artigo em tom de revista sobre o que o backend faz
@@ -28,14 +28,15 @@ export class ArtigoComponent {
   readonly saida = output<OrigemSaida>();
 
   protected readonly SIMULADOR_URL = SIMULADOR_URL;
+  protected readonly FRASE_EXEMPLO = FRASE_EXEMPLO;
   protected readonly linhasIa = linhasJson(EXEMPLO_RASCUNHO);
   protected readonly linhasResposta = linhasJson(EXEMPLO_RESPOSTA);
 
   protected readonly etapas = [
-    { n: '01', titulo: 'A frase', texto: 'Escrita como numa conversa, sem sintaxe.' },
-    { n: '02', titulo: 'A IA', texto: '[modelo e formato de saída]' },
-    { n: '03', titulo: 'A validação', texto: '[o que é checado antes de salvar]' },
-    { n: '04', titulo: 'O motor de regras', texto: 'Uma strategy por tipo: cron, simples, complexos.' },
-    { n: '05', titulo: 'A resposta', texto: 'O lembrete salvo, com as próximas execuções.' },
+    { n: '01', titulo: 'A frase', texto: 'Escrita como numa conversa, com o relógio de quem escreve.' },
+    { n: '02', titulo: 'A IA', texto: 'Gemini ou Claude preenchem um schema derivado do próprio DTO.' },
+    { n: '03', titulo: 'A validação', texto: 'As mesmas regras do formulário, e a prévia das datas.' },
+    { n: '04', titulo: 'A revisão', texto: 'Você confere o JSON. Nada foi salvo até aqui.' },
+    { n: '05', titulo: 'O agendamento', texto: 'Confirmado, vira um trigger do Quartz no Postgres.' },
   ];
 }

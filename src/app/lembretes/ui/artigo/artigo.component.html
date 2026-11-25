@@ -9,7 +9,7 @@
       expressar.
     </p>
     <div class="rp-artigo__assinatura">
-      <span>por Gustavo Olmos</span><span>backend · IA · motor de regras</span><span>[tempo de leitura]</span>
+      <span>por Gustavo Olmos</span><span>backend · IA · motor de regras</span><span>6 min de leitura</span>
     </div>
   </header>
 
@@ -21,11 +21,36 @@
       se cair num feriado, antes. Nada disso cabe em cinco campos separados por espaço.
     </p>
     <p>
-      O Routine Pusher nasceu dessa lacuna. Em vez de pedir que a pessoa aprenda uma sintaxe, ele
-      aceita a frase como ela sairia numa conversa e deixa o trabalho de tradução para o sistema.
+      O Routine Pusher nasceu dessa lacuna, em 2024, como um projeto de estudo de arquitetura que
+      andou aos trancos, nas horas vagas. Primeiro veio o motor de recorrência; a IA chegou
+      depois, com uma promessa simples: em vez de pedir que a pessoa aprenda uma sintaxe, aceitar a
+      frase como ela sairia numa conversa e deixar a tradução para o sistema.
     </p>
     <h3>O caminho da frase</h3>
-    <p>[TEXTO: como a frase chega ao backend, qual modelo de IA a interpreta e como o pedido é estruturado — prompt, schema ou ambos.]</p>
+    <p>
+      A frase sai do navegador acompanhada do relógio de quem escreveu. Parece detalhe, mas é o
+      que faz “amanhã às 9h” cair no dia certo: o servidor mora em outro fuso, e é a hora do
+      usuário que conta.
+    </p>
+    <p>
+      No backend, em Java com Spring Boot, a frase vai para um modelo de linguagem — o Gemini, por
+      padrão, ou o Claude, da Anthropic. Qual dos dois atende é uma variável de ambiente, não um
+      deploy, e a rota se chama <code>/chat</code>, não o nome de ninguém: o provedor já mudou
+      duas vezes desde a primeira prova de conceito, e a URL nunca mudou junto.
+    </p>
+    <p>
+      O pedido tem três partes. Um prompt fixo com as regras do domínio — o mesmo em toda chamada,
+      o que permite cache e impede que a frase de uma pessoa vaze no pedido da outra. Um contexto
+      com a hora atual e as categorias da sessão. E a frase por último, rotulada como dado: se
+      alguém escrever “ignore as instruções anteriores”, o modelo lê isso como parte do lembrete.
+    </p>
+    <p>
+      A resposta não é texto livre. O modelo preenche um JSON Schema — e esse schema não foi
+      escrito à mão: ele é derivado em tempo de execução da mesma classe que recebe o formulário.
+      As anotações que recusam um campo vazio digitado por um humano viram campos obrigatórios
+      para o modelo. Quando o domínio ganha um campo, o contrato com a IA ganha junto, sem
+      ninguém lembrar de atualizar prompt nenhum.
+    </p>
   </div>
 
   <ol class="rp-artigo__etapas">
@@ -40,9 +65,16 @@
 
   <div class="rp-artigo__corpo">
     <p>
-      O coração do sistema é um motor de regras com uma strategy por tipo de lembrete — cron,
-      simples e complexos. Cada uma sabe calcular a sua própria sequência de datas, e é ela que
-      devolve as próximas execuções que aparecem na tela.
+      Validado, o rascunho chega ao coração do sistema: um motor de regras com uma strategy por
+      forma de repetição — calendário, que vira expressão cron; intervalo, como “a cada duas
+      horas”; e datas apontadas a dedo. Cada uma sabe calcular a própria sequência, uma segunda
+      família de strategies decide quando a série termina, e por cima delas corre a política de
+      dia útil, que pula, adia ou antecipa o que cair num fim de semana ou feriado.
+    </p>
+    <p>
+      As próximas execuções que aparecem na tela saem desse mesmo código, calculadas sobre um
+      lembrete que ainda nem existe. Criar e simular passam pelo mesmo caminho — e por isso um
+      rascunho aprovado na revisão só falha na confirmação se o mundo mudar no meio.
     </p>
   </div>
 
@@ -54,9 +86,12 @@
   <div class="rp-artigo__corpo">
     <h3>Dois JSONs, lado a lado</h3>
     <p>
-      À esquerda, o rascunho que a IA monta a partir da frase — e que a pessoa revisa antes de
-      salvar. À direita, o que o sistema responde depois de confirmado, validado e agendado. É essa
-      a ponte que um chatbot constrói: de linguagem natural para dados que uma aplicação entende.
+      Para a frase <em>“{{ FRASE_EXEMPLO }}”</em>, à esquerda está o rascunho que o modelo
+      devolveu de verdade, em produção — e que a pessoa revisa antes de salvar. À direita, o que o
+      sistema responde depois de confirmado e agendado. Repare nas datas: janeiro e julho de 2027
+      terminam no fim de semana, e o lembrete se antecipa para a sexta; os meses sem dia 31 ficam
+      de fora. É essa a ponte que um chatbot
+      constrói: de linguagem natural para dados que uma aplicação entende.
     </p>
   </div>
 
@@ -72,20 +107,60 @@
   </div>
 
   <div class="rp-artigo__corpo">
+    <h3>As decisões que ficaram</h3>
+    <p>
+      <strong>A IA não salva nada.</strong> A primeira versão interpretava e gravava numa chamada
+      só, e foi aí que a ideia mostrou o defeito: um modelo que erra calado cria um lembrete
+      errado, e ninguém percebe até ele não tocar. O fluxo virou interpretar, revisar e criar. O
+      modelo rascunha, a pessoa confere o JSON e as datas, e só a confirmação — uma criação
+      comum, que nem gasta cota de IA — chega ao banco. Hoje a IA simplesmente não tem uma rota
+      que persista.
+    </p>
+    <p>
+      <strong>O que o modelo devolve é entrada externa.</strong> Structured output garante a forma
+      do JSON, não o conteúdo. Por isso o rascunho passa pelas mesmas validações de quem preenche
+      o formulário: campos obrigatórios, intervalo mínimo de cinco minutos e a pergunta mais
+      básica de todas — isto vai disparar algum dia?
+    </p>
+    <p>
+      <strong>Ninguém cria conta para testar um site que veio de um post.</strong> A identidade é
+      uma sessão anônima num cookie, que vive 48 horas sem uso. Cada sessão tem um teto de dez
+      lembretes e dez chamadas de IA, e as travas vão da mais barata para a mais cara: conferir a
+      vaga custa uma contagem no banco; chamar o modelo custa dinheiro, então vem depois.
+    </p>
+    <p>
+      <strong>Agendamento de verdade.</strong> Um lembrete aqui não é uma linha numa tabela
+      esperando alguém consultar: é um trigger do Quartz, persistido no Postgres, que dispara na
+      hora marcada, sobrevive a um restart e chega ao navegador por SSE. Um disparo de cada vez —
+      o resto é projeção.
+    </p>
+
     <h3>O que vem depois</h3>
-    <p>[TEXTO: decisões de arquitetura, limites da demonstração e o que ainda falta construir.]</p>
+    <p>
+      Tudo roda num container pequeno da AWS, com o banco no Supabase, e os limites são escolhas,
+      não esquecimentos. A notificação só chega com a aba aberta, porque Web Push pediria uma
+      identidade persistente que um demo anônimo recusa de propósito. O lembrete guarda a hora, não
+      o fuso — a correção real é cada um levar o fuso de quem o criou. E 48 horas de retenção não
+      servem para um lembrete marcado daqui a duas semanas.
+    </p>
+    <p>
+      Resolver isso é o próximo capítulo: contas de verdade, fuso por lembrete, notificação com o
+      navegador fechado e um pipeline que publique sem passar pela minha máquina. O motor de
+      regras, esse, já está pronto para eles.
+    </p>
   </div>
 
   <section id="rp-rotafin" class="rp-anuncio" aria-label="da RotaFin">
     <div class="rp-artigo__chapeu">Também da RotaFin</div>
     <div class="rp-anuncio__grade">
       <div class="rp-anuncio__foto" aria-hidden="true">
-        <span class="rp-anuncio__marcador">[print da calculadora RotaFin]</span>
-        <span class="rp-anuncio__barras">
-          @for (b of [38, 52, 46, 64, 58, 76, 70, 88]; track $index) {
-            <span [style.height.%]="b"></span>
-          }
-        </span>
+        <img
+          src="assets/rotafin-simulador.webp"
+          alt=""
+          width="550"
+          height="690"
+          loading="lazy"
+          decoding="async" />
       </div>
       <div class="rp-anuncio__texto">
         <span class="rp-anuncio__titulo">Simulador de<br /><em>financiamento.</em></span>
