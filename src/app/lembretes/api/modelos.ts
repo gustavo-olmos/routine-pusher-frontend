@@ -115,6 +115,16 @@ export interface Lembrete {
   proximasExecucoes: string[] | null;
 }
 
+/**
+ * Rascunho do `POST /chat/interpretacao`: nada foi salvo. `lembrete` é exatamente
+ * o corpo que o `POST /lembrete` aceita — confirmar é reenviá-lo.
+ */
+export interface Interpretacao {
+  lembrete: LembreteEntrada;
+  /** Prévia calculada pelo mesmo domínio da criação; nada foi agendado. */
+  proximasExecucoes: string[] | null;
+}
+
 export interface FraseEntrada {
   frase: string;
   /** Relógio de quem pede. Sem isto, "amanhã às 9h" resolve no fuso do servidor. */

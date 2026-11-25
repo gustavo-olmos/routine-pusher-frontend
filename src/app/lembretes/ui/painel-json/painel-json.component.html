@@ -1,0 +1,16 @@
+<div class="rp-pj" [class.rp-pj--compacto]="compacto()">
+  @if (!compacto() && cabecalho()) {
+    <div class="rp-pj__head">
+      <span class="rp-pj__rotulo">{{ rotulo() }}</span>
+      <span class="rp-pj__status" [attr.data-tom]="tom()">{{ status() }}</span>
+    </div>
+  }
+  <!-- Linhas em bloco e sem quebra de texto entre elas: dentro do <pre>, um
+       \n entre os spans viraria uma linha em branco. -->
+  <pre class="rp-pj__codigo" [class.rp-pj__codigo--apagado]="apagado()" [attr.aria-label]="rotulo() || null"><code>@for (linha of visiveis(); track linha.chave) {<span class="rp-pj__linha" [class.rp-pj__linha--anima]="!apagado()" [style.animation-delay.ms]="linha.atraso">@for (tk of linha.tokens; track $index) {<span [class]="'rp-tk rp-tk--' + tk.tipo">{{ tk.t }}</span>}</span>}@if (cortado() && !expandido()) {<span class="rp-pj__linha rp-tk rp-tk--pontuacao">  …</span>}</code></pre>
+  @if (cortado()) {
+    <button type="button" class="rp-pj__mais" (click)="alternar()">
+      {{ expandido() ? 'mostrar menos' : 'ver resposta completa' }}
+    </button>
+  }
+</div>

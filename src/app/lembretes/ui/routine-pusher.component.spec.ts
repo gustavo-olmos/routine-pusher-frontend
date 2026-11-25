@@ -10,7 +10,8 @@ import { Categoria, Lembrete, Sessao } from '../api/modelos';
 import { NotificacoesService } from '../api/notificacoes.service';
 import { LembretesStore } from '../estado/lembretes.store';
 import { FunilService } from '../funil/funil.service';
-import { API_V1 } from '../lembretes.config';
+import { API_V1, SUGESTOES } from '../lembretes.config';
+import { Interpretacao, LembreteEntrada } from '../api/modelos';
 import { RoutinePusherComponent } from './routine-pusher.component';
 
 const SESSAO: Sessao = {
@@ -87,6 +88,18 @@ const FATURA: Lembrete = {
     dataFim: null,
     datasEspecificadas: null,
   },
+  proximasExecucoes: ['2026-09-10T09:00:00', '2026-10-10T09:00:00'],
+};
+
+/** Rascunho do POST /chat/interpretacao: o corpo exato que o POST /lembrete aceita. */
+const RASCUNHO_FATURA: Interpretacao = {
+  lembrete: {
+    titulo: 'Pagar a fatura do cartão',
+    descricao: null,
+    categoriaId: 3,
+    recorrencia: FATURA.recorrencia,
+    notificacao: { metodo: ['pop-up'], horario: '09:00', dataInicio: null, dataFim: null, datasEspecificadas: null },
+  } as LembreteEntrada,
   proximasExecucoes: ['2026-09-10T09:00:00', '2026-10-10T09:00:00'],
 };
 
@@ -188,6 +201,32 @@ describe('RoutinePusherComponent', () => {
     fixture.detectChanges();
   }
 
+  /** O "+": o momento 1 sai deslizando e só então o chat entra. */
+  function irParaChat(): void {
+    (el.querySelector('.rp-mais') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    tick(500);
+    fixture.detectChanges();
+  }
+
+  /** Escreve a frase no chat e envia: vira POST /chat/interpretacao. */
+  function enviarFrase(frase: string): void {
+    const campo = el.querySelector('.rp-composer__input') as HTMLTextAreaElement;
+    campo.value = frase;
+    campo.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    (el.querySelector('.rp-send') as HTMLButtonElement).click();
+  }
+
+  /** Do momento 1 até o rascunho na tela, sem nada salvo. */
+  function interpretar(frase = 'me lembra de pagar a fatura todo dia 10'): void {
+    irParaChat();
+    enviarFrase(frase);
+    http.expectOne(req => req.url === `${API_V1}/chat/interpretacao`).flush(RASCUNHO_FATURA);
+    tick();
+    fixture.detectChanges();
+  }
+
   it('manda withCredentials em toda chamada — sem isso cada requisição vira uma sessão nova', fakeAsync(() => {
     fixture.detectChanges();
 
@@ -225,21 +264,22 @@ describe('RoutinePusherComponent', () => {
     tick();
   }));
 
-  it('sem lembretes, a lista vira exemplos financeiros e continua na tela', fakeAsync(() => {
+  it('sem lembretes, o card convida a criar e o chat oferece os exemplos', fakeAsync(() => {
     abrir([]);
 
-    // A seção da lista existe sempre: some ela e a tela perde o ritmo do design.
-    const secao = el.querySelector('.rp-examples');
-    expect(secao).withContext('seção de exemplos').toBeTruthy();
-    expect(secao?.querySelector('.rp-label')?.textContent?.trim()).toBe('exemplos');
-    expect(secao!.querySelectorAll('.rp-row').length).toBeGreaterThan(0);
     expect(el.textContent).toContain('Nenhum lembrete ainda');
+    irParaChat();
+
+    const chat = el.querySelector('.rp-examples');
+    expect(chat).withContext('chat').toBeTruthy();
+    expect(chat!.querySelectorAll('.rp-exemplo').length).toBe(SUGESTOES.length);
   }));
 
   it('clicar num exemplo preenche a frase sem criar nada', fakeAsync(() => {
     abrir([]);
+    irParaChat();
 
-    (el.querySelector('.rp-examples .rp-row') as HTMLButtonElement).click();
+    (el.querySelector('.rp-exemplo') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     const campo = el.querySelector('.rp-composer__input') as HTMLTextAreaElement;
@@ -247,13 +287,20 @@ describe('RoutinePusherComponent', () => {
     // Nenhuma chamada disparada: o afterEach do http.verify() reprovaria.
   }));
 
-  it('desenha um card por lembrete, com as datas que o servidor previu', fakeAsync(() => {
+  it('mostra o lembrete selecionado num card, com as datas que o servidor previu', fakeAsync(() => {
     abrir([AGUA, FATURA]);
 
-    expect(el.querySelectorAll('.rp-card').length).toBe(2);
-    // proximasExecucoes vira a régua da timeline.
-    expect(el.querySelectorAll('.rp-card')[0].querySelectorAll('.rp-tick').length).toBe(5);
-    expect(el.textContent).toContain('Beber água');
+    // Sem carrossel: um card só, o do selecionado, e a lista ao lado.
+    expect(el.querySelectorAll('.rp-card').length).toBe(1);
+    expect(el.querySelectorAll('.rp-card .rp-data').length).toBe(5);
+    expect(el.querySelectorAll('.rp-row').length).toBe(2);
+    expect(el.querySelector('.rp-card__label')?.textContent?.trim()).toBe('Beber água');
+
+    // Tocar na linha troca o card.
+    (el.querySelectorAll('.rp-row__main')[1] as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('.rp-card__label')?.textContent?.trim()).toBe('Pagar a fatura do cartão');
+    expect(el.querySelectorAll('.rp-card .rp-data').length).toBe(2);
   }));
 
   it('traduz a recorrência para cron, e admite quando não há equivalente', fakeAsync(() => {
@@ -279,47 +326,91 @@ describe('RoutinePusherComponent', () => {
       .toContain('rp-categoria');
   }));
 
-  it('cria por frase mandando o relógio do usuário e reabre a lista', fakeAsync(() => {
+  it('interpreta a frase sem salvar, e só cria quando a pessoa confirma', fakeAsync(() => {
     abrir([]);
+    irParaChat();
+    enviarFrase('me lembra de pagar a fatura todo dia 10');
 
-    const campo = el.querySelector('.rp-composer__input') as HTMLTextAreaElement;
-    campo.value = 'me lembra de pagar a fatura todo dia 10';
-    campo.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    (el.querySelector('.rp-send') as HTMLButtonElement).click();
-
-    const chat = http.expectOne(req => req.url === `${API_V1}/chat/lembrete`);
+    const chat = http.expectOne(req => req.url === `${API_V1}/chat/interpretacao`);
     expect(chat.request.body.frase).toBe('me lembra de pagar a fatura todo dia 10');
     // Sem `agora`, "amanhã às 9h" resolveria no fuso do servidor.
     expect(chat.request.body.agora).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
-    chat.flush(FATURA);
-    tick();
-
-    // Relista em vez de dar push: a ordem é do servidor.
-    http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([FATURA]);
+    chat.flush(RASCUNHO_FATURA);
     tick();
     fixture.detectChanges();
 
-    expect(el.querySelectorAll('.rp-card').length).toBe(1);
+    // Rascunho na tela, nada salvo: nenhum POST /lembrete até aqui.
+    expect(el.querySelector('.rp-criar')).withContext('botão de confirmar').toBeTruthy();
+    expect(el.textContent).toContain('rascunho · não salvo');
+    http.expectNone(req => req.method === 'POST' && req.url === `${API_V1}/lembrete`);
+
+    (el.querySelector('.rp-criar') as HTMLButtonElement).click();
+
+    // Confirmar é reenviar o rascunho, igual, ao POST /lembrete comum.
+    const post = http.expectOne(req => req.method === 'POST' && req.url === `${API_V1}/lembrete`);
+    expect(post.request.body).toEqual(RASCUNHO_FATURA.lembrete);
+    post.flush(FATURA, { status: 201, statusText: 'Created' });
+    tick();
+    http.expectOne(req => req.method === 'GET' && req.url === `${API_V1}/lembrete`).flush([FATURA]);
+    tick();
+    fixture.detectChanges();
+
+    expect(el.textContent).toContain('201 Created');
+    expect(el.querySelector('.rp-bolha--ok')).toBeTruthy();
+
+    // "ver lembrete" volta ao momento 1 com o recém-criado no card.
+    (el.querySelector('.rp-ver') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('.rp-card__label')?.textContent?.trim()).toBe('Pagar a fatura do cartão');
+  }));
+
+  it('voltar sem confirmar descarta o rascunho — nada é salvo', fakeAsync(() => {
+    abrir([AGUA]);
+    interpretar();
+
+    (el.querySelector('.rp-voltar') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    // Nenhum POST: o http.verify() do afterEach reprovaria.
+    expect(el.querySelector('.rp-card__label')?.textContent?.trim()).toBe('Beber água');
+    const funil = TestBed.inject(FunilService);
+    expect(funil.trilha().some(r => r.evento === 'rascunho_descartado')).toBeTrue();
+  }));
+
+  it('ajustar no formulário abre o formulário com o que a IA entendeu', fakeAsync(() => {
+    abrir([]);
+    interpretar();
+
+    (el.querySelector('.rp-ajustar') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.rp-panel--form')).toBeTruthy();
+    const titulo = el.querySelector('.rp-form .rp-input') as HTMLInputElement;
+    expect(titulo.value).toBe('Pagar a fatura do cartão');
+    const select = el.querySelector('.rp-form select.rp-input') as HTMLSelectElement;
+    expect(select.value).toBe('3');
+  }));
+
+  it('as sugestões somem depois da primeira frase', fakeAsync(() => {
+    abrir([]);
+    interpretar();
+
+    expect(el.querySelector('.rp-exemplo')).toBeNull();
   }));
 
   it('convida ao simulador quando o lembrete fala de dívida', fakeAsync(() => {
     abrir([]);
+    interpretar('me lembra de pagar a fatura todo dia 10');
 
-    const campo = el.querySelector('.rp-composer__input') as HTMLTextAreaElement;
-    campo.value = 'me lembra de pagar a fatura todo dia 10';
-    campo.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-    (el.querySelector('.rp-send') as HTMLButtonElement).click();
-
-    http.expectOne(req => req.url === `${API_V1}/chat/lembrete`).flush(FATURA);
+    (el.querySelector('.rp-criar') as HTMLButtonElement).click();
+    http.expectOne(req => req.method === 'POST' && req.url === `${API_V1}/lembrete`).flush(FATURA);
     tick();
-    http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([FATURA]);
+    http.expectOne(req => req.method === 'GET' && req.url === `${API_V1}/lembrete`).flush([FATURA]);
     tick();
     fixture.detectChanges();
 
-    expect(el.querySelector('.rp-convite')).withContext('convite contextual').toBeTruthy();
+    // O convite mora no anúncio do fim do artigo.
+    expect(el.querySelector('#rp-rotafin .rp-convite')).withContext('convite contextual').toBeTruthy();
   }));
 
   describe('alternador de tema', () => {
@@ -403,14 +494,10 @@ describe('RoutinePusherComponent', () => {
 
   it('trata 429 como limite de sessão, não como erro genérico', fakeAsync(() => {
     abrir([]);
+    irParaChat();
+    enviarFrase('mais um lembrete');
 
-    const campo = el.querySelector('.rp-composer__input') as HTMLTextAreaElement;
-    campo.value = 'mais um lembrete';
-    campo.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-    (el.querySelector('.rp-send') as HTMLButtonElement).click();
-
-    http.expectOne(req => req.url === `${API_V1}/chat/lembrete`).flush(
+    http.expectOne(req => req.url === `${API_V1}/chat/interpretacao`).flush(
       { status: 429, mensagem: 'Limite de 10 chamadas de IA nesta sessão.' },
       { status: 429, statusText: 'Too Many Requests' },
     );
@@ -424,14 +511,10 @@ describe('RoutinePusherComponent', () => {
 
   it('mostra os campos inválidos de um 400, que dizem mais que a mensagem raiz', fakeAsync(() => {
     abrir([]);
+    irParaChat();
+    enviarFrase('algo');
 
-    const campo = el.querySelector('.rp-composer__input') as HTMLTextAreaElement;
-    campo.value = 'algo';
-    campo.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-    (el.querySelector('.rp-send') as HTMLButtonElement).click();
-
-    http.expectOne(req => req.url === `${API_V1}/chat/lembrete`).flush(
+    http.expectOne(req => req.url === `${API_V1}/chat/interpretacao`).flush(
       {
         status: 400,
         mensagem: 'Um ou mais campos são inválidos',
@@ -454,31 +537,10 @@ describe('RoutinePusherComponent', () => {
     expect(el.querySelector('.rp-alerta')?.textContent).toContain('localhost:8080');
   }));
 
-  it('o ✓ apenas aceita as datas: fecha o painel sem tocar na API', fakeAsync(() => {
+  it('conclui pelo ✓ do card e relista — o PATCH responde vazio', fakeAsync(() => {
     abrir([AGUA]);
 
-    (el.querySelector('.rp-cta') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(el.querySelector('.rp-panel')).toBeTruthy();
-    expect(el.querySelectorAll('.rp-occurrence').length).toBe(5);
-
-    (el.querySelector('.rp-acao--confirmar') as HTMLButtonElement).click();
-    fixture.detectChanges();
-
-    expect(el.querySelector('.rp-panel')).withContext('painel fecha').toBeNull();
-    // Nenhum PATCH, nenhum DELETE: o http.verify() do afterEach reprovaria.
-    expect(el.querySelector('.rp-card')?.classList).not.toContain('rp-card--feito');
-
-    const funil = TestBed.inject(FunilService);
-    expect(funil.trilha().some(r => r.evento === 'datas_confirmadas'))
-      .withContext('aceite das datas é a métrica de acerto da IA')
-      .toBeTrue();
-  }));
-
-  it('conclui pelo ✓ da lista e relista — o PATCH responde vazio', fakeAsync(() => {
-    abrir([AGUA]);
-
-    (el.querySelector('.rp-row__ok') as HTMLButtonElement).click();
+    (el.querySelector('.rp-acao--concluir') as HTMLButtonElement).click();
 
     const patch = http.expectOne(req => req.method === 'PATCH');
     expect(patch.request.url).toBe(`${API_V1}/lembrete/${AGUA.uuid}`);
@@ -490,28 +552,43 @@ describe('RoutinePusherComponent', () => {
     fixture.detectChanges();
 
     expect(el.querySelector('.rp-card')?.classList).toContain('rp-card--feito');
-
-    // O ✓ permanece na linha, desabilitado, para os selos não dançarem.
-    const ok = el.querySelector('.rp-row__ok') as HTMLButtonElement;
+    const ok = el.querySelector('.rp-acao--concluir') as HTMLButtonElement;
     expect(ok.disabled).toBeTrue();
-    expect(ok.classList).toContain('rp-row__ok--feito');
+    expect(ok.classList).toContain('rp-acao--feito');
   }));
 
-  it('a linha da lista não aninha botões — HTML inválido quebraria o clique', fakeAsync(() => {
+  it('a linha da lista é um botão só: concluir mora no card', fakeAsync(() => {
     abrir([AGUA]);
 
     const linha = el.querySelector('li.rp-row') as HTMLElement;
     expect(linha.tagName).toBe('LI');
-    expect(linha.querySelector('button .rp-row__ok')).withContext('✓ fora do miolo').toBeNull();
-    expect(linha.querySelectorAll(':scope > button').length).toBe(2);
+    expect(linha.querySelectorAll(':scope > button').length).toBe(1);
+  }));
+
+  it('o "+" troca de momento: card e lista saem antes de o chat entrar', fakeAsync(() => {
+    abrir([AGUA]);
+
+    (el.querySelector('.rp-mais') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('.rp-esq')?.classList).withContext('saindo').toContain('rp-saindo');
+    expect(el.querySelector('.rp-chat')).withContext('chat ainda não').toBeNull();
+
+    tick(500);
+    fixture.detectChanges();
+    expect(el.querySelector('.rp-card')).toBeNull();
+    expect(el.querySelector('.rp-chat')).toBeTruthy();
+    // O título fica: é o cabeçalho da página, não de um momento.
+    expect(el.querySelector('.rp-title')?.textContent).toContain('Routine Pusher');
+
+    (el.querySelector('.rp-voltar') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('.rp-card')).toBeTruthy();
   }));
 
   describe('edição', () => {
-    /** Abre o detalhe do primeiro lembrete e clica no lápis. */
+    /** Clica no lápis do card do primeiro lembrete. */
     function abrirEdicao(lembretes: Lembrete[]): void {
       abrir(lembretes);
-      (el.querySelector('.rp-cta') as HTMLButtonElement).click();
-      fixture.detectChanges();
       (el.querySelector('.rp-acao--editar') as HTMLButtonElement).click();
       fixture.detectChanges();
     }
@@ -608,8 +685,6 @@ describe('RoutinePusherComponent', () => {
     it('avisa que um lembrete concluído volta a pendente ao reagendar', fakeAsync(() => {
       const feito = { ...FATURA, status: 'CONCLUIDO' as const, proximasExecucoes: [] };
       abrir([feito]);
-      (el.querySelector('.rp-cta') as HTMLButtonElement).click();
-      fixture.detectChanges();
       (el.querySelector('.rp-acao--editar') as HTMLButtonElement).click();
       fixture.detectChanges();
 
@@ -626,6 +701,7 @@ describe('RoutinePusherComponent', () => {
       (el.querySelector('.rp-panel--form .rp-secondary') as HTMLButtonElement).click();
       fixture.detectChanges();
 
+      irParaChat();
       (el.querySelector('.rp-examples .rp-reset--form') as HTMLButtonElement).click();
       fixture.detectChanges();
 
@@ -647,30 +723,6 @@ describe('RoutinePusherComponent', () => {
       tick();
     }));
   });
-
-  it('o carrossel anda na horizontal, em passo proporcional à largura', fakeAsync(() => {
-    abrir([AGUA, FATURA]);
-
-    const trilha = el.querySelector('.rp-track') as HTMLElement;
-    // Porcentagem, não pixel: a versão vertical dependia de um 364 fixo que era
-    // a altura do card mais o gap, e mudar o SCSS a desalinhava em silêncio.
-    expect(trilha.style.transform).toContain('translateX');
-    expect(trilha.style.transform).not.toContain('translateY');
-    // O navegador normaliza o calc, então o teste olha o efeito, não o texto:
-    // no primeiro card não há deslocamento.
-    const primeiro = trilha.style.transform;
-    expect(primeiro).not.toContain('-100%');
-
-    (el.querySelectorAll('.rp-rail__btn')[1] as HTMLButtonElement).click();
-    fixture.detectChanges();
-
-    // No segundo, anda uma largura de trilha (= um card) mais o gap.
-    expect(trilha.style.transform).not.toBe(primeiro);
-    expect(trilha.style.transform).toContain('-100%');
-    expect(trilha.style.transform).toContain('24px');
-    // Os controles ficam abaixo dos cards, onde dá para alcançar no celular.
-    expect(el.querySelector('.rp-carousel__row .rp-rail')).toBeTruthy();
-  }));
 
   describe('aviso do navegador', () => {
     function alerta(): AlertaFalso {
@@ -694,7 +746,7 @@ describe('RoutinePusherComponent', () => {
 
     it('o stream voltando relista os lembretes — o que disparou fora se perdeu', fakeAsync(() => {
       abrir([]);
-      expect(el.querySelectorAll('.rp-card').length).toBe(0);
+      expect(el.querySelectorAll('.rp-card__label').length).toBe(0);
 
       stream().reconectar();
 
@@ -753,6 +805,8 @@ describe('RoutinePusherComponent', () => {
       // No Safari do iPhone a API só existe em site adicionado à Tela de
       // Início: oferecer um botão que não faz nada seria pior que explicar.
       expect(el.querySelector('.rp-sino')).toBeNull();
+      // A explicação mora na nota de persistência, embaixo do campo do chat.
+      irParaChat();
       expect(el.textContent).toContain('adicionar à tela de início');
     }));
   });
@@ -772,6 +826,7 @@ describe('RoutinePusherComponent', () => {
     /** Abre o painel pelo botão da seção — sem alvo, só para gerenciar. */
     function abrirGerenciador(lembretes: Lembrete[] = [FATURA]): Element {
       abrir(lembretes);
+      irParaChat();
       (el.querySelector('.rp-examples .rp-reset--cats') as HTMLButtonElement).click();
       fixture.detectChanges();
       return el.querySelector('.rp-panel--categorias')!;
@@ -924,6 +979,10 @@ describe('RoutinePusherComponent', () => {
       tick();
       fixture.detectChanges();
 
+      // O gerenciador abre pelo chat; o card mora no momento 1.
+      (el.querySelector('.rp-panel--categorias .rp-close') as HTMLButtonElement).click();
+      (el.querySelector('.rp-voltar') as HTMLButtonElement).click();
+      fixture.detectChanges();
       expect(el.querySelector('.rp-card .rp-categoria')?.textContent?.trim()).toBe('Moradia');
     }));
 
@@ -962,6 +1021,7 @@ describe('RoutinePusherComponent', () => {
       http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([]);
       tick();
       fixture.detectChanges();
+      irParaChat();
 
       (el.querySelector('.rp-examples .rp-reset--cats') as HTMLButtonElement).click();
       fixture.detectChanges();
@@ -984,6 +1044,7 @@ describe('RoutinePusherComponent', () => {
       http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([]);
       tick();
       fixture.detectChanges();
+      irParaChat();
 
       // `categoriaId` é obrigatório ao criar: o campo de frase só levaria a 404.
       expect(el.querySelector('.rp-composer__input')).withContext('sem campo de frase').toBeNull();
@@ -1006,33 +1067,19 @@ describe('RoutinePusherComponent', () => {
       notificacao: { ...FATURA.notificacao, proximaExecucao: null },
     };
 
-    it('o card não promete execuções que não existem', fakeAsync(() => {
+    it('o card não promete execuções que não existem, e culpa o status', fakeAsync(() => {
       abrir([FEITO]);
 
-      const cta = el.querySelector('.rp-cta')?.textContent ?? '';
-      expect(cta).not.toContain('próximas');
-      expect(el.querySelector('.rp-next__value')?.textContent).toContain('não dispara mais');
+      expect(el.querySelectorAll('.rp-data').length).toBe(0);
+      const aviso = el.querySelector('.rp-card__sem-datas')?.textContent ?? '';
+      expect(aviso).toContain('não dispara mais');
+      expect(aviso).withContext('a recorrência não tem defeito').not.toContain('não previu');
     }));
 
-    it('o painel culpa o status, não a regra de recorrência', fakeAsync(() => {
+    it('concluído, o ✓ fica apagado; editar e excluir continuam', fakeAsync(() => {
       abrir([FEITO]);
-      (el.querySelector('.rp-cta') as HTMLButtonElement).click();
-      fixture.detectChanges();
 
-      expect(el.querySelector('.rp-panel .rp-label')?.textContent?.trim())
-        .toBe('lembrete concluído');
-      const vazio = el.querySelector('.rp-occurrence--vazia')?.textContent ?? '';
-      expect(vazio).toContain('não dispara mais');
-      expect(vazio).withContext('a recorrência não tem defeito').not.toContain('não previu');
-    }));
-
-    it('sem datas, o ✓ de "aceito estas datas" não aparece', fakeAsync(() => {
-      abrir([FEITO]);
-      (el.querySelector('.rp-cta') as HTMLButtonElement).click();
-      fixture.detectChanges();
-
-      expect(el.querySelector('.rp-acao--confirmar')).toBeNull();
-      // Editar e excluir continuam fazendo sentido.
+      expect((el.querySelector('.rp-acao--concluir') as HTMLButtonElement).disabled).toBeTrue();
       expect(el.querySelector('.rp-acao--editar')).toBeTruthy();
       expect(el.querySelector('.rp-acao--excluir')).toBeTruthy();
     }));
@@ -1040,6 +1087,7 @@ describe('RoutinePusherComponent', () => {
 
   it('recusa intervalo abaixo do mínimo em vez de corrigir em silêncio', fakeAsync(() => {
     abrir([AGUA]);
+    irParaChat();
     (el.querySelector('.rp-examples .rp-reset--form') as HTMLButtonElement).click();
     fixture.detectChanges();
 
@@ -1064,13 +1112,14 @@ describe('RoutinePusherComponent', () => {
     // Nenhuma requisição: o http.verify() do afterEach reprovaria um POST aqui.
   }));
 
-  it('exclui pelo detalhe, fecha o painel e relista', fakeAsync(() => {
+  it('exclui pela lixeira do card, depois de confirmar, e relista', fakeAsync(() => {
     abrir([AGUA, FATURA]);
 
-    (el.querySelector('.rp-cta') as HTMLButtonElement).click();
-    fixture.detectChanges();
-
+    // A lixeira só pede confirmação; o DELETE sai no segundo clique.
     (el.querySelector('.rp-acao--excluir') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    http.expectNone(req => req.method === 'DELETE');
+    (el.querySelector('.rp-excluir-sim') as HTMLButtonElement).click();
 
     const del = http.expectOne(req => req.method === 'DELETE');
     expect(del.request.url).toBe(`${API_V1}/lembrete/${AGUA.uuid}`);
@@ -1082,8 +1131,8 @@ describe('RoutinePusherComponent', () => {
     tick();
     fixture.detectChanges();
 
-    expect(el.querySelector('.rp-panel')).withContext('painel fecha').toBeNull();
-    expect(el.querySelectorAll('.rp-card').length).toBe(1);
+    expect(el.querySelector('.rp-card__label')?.textContent?.trim()).toBe('Pagar a fatura do cartão');
+    expect(el.querySelectorAll('.rp-row').length).toBe(1);
   }));
 
   it('monta o POST do formulário com o intervalo em recorrencia e dataInicio no agora', fakeAsync(() => {

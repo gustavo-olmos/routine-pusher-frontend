@@ -1,0 +1,189 @@
+/* Material sólido e acento âmbar: é da RotaFin, não do app — por isso a alça
+   não muda com o tema. */
+
+.rp-alca {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: 0;
+  width: min(820px, calc(100% - 96px));
+  box-sizing: border-box;
+  border: 1px solid rgba(22, 22, 26, 0.08);
+  border-bottom: none;
+  border-radius: 26px 26px 0 0;
+  background: #fbfaf7;
+  box-shadow: 0 -16px 48px rgba(22, 22, 26, 0.2);
+  color: #16161a;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  /* Sobe, fica ~13 s (passar o mouse pausa) e desce. Fill `both`: a alça não
+     tem vidro dentro, então não há backdrop-filter para atrapalhar. */
+  animation: rpAlcaDesktop 16s cubic-bezier(0.22, 0.8, 0.24, 1) 2s both;
+
+  &:hover { animation-play-state: paused; }
+
+  &__corpo {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    padding: 12px 28px 26px;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  &__puxador {
+    align-self: center;
+    width: 52px;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(22, 22, 26, 0.18);
+  }
+
+  &__linha {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding-right: 52px;
+  }
+
+  &__marca {
+    flex: none;
+    width: 168px;
+    height: 96px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(150deg, #fdf1e0, #f4c48e);
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 34px;
+    font-style: italic;
+    letter-spacing: -0.5px;
+    color: #8a430c;
+  }
+
+  &__texto {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__titulo {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 30px;
+    line-height: 1.1;
+    font-weight: 300;
+    letter-spacing: -0.4px;
+
+    em { font-weight: 400; }
+  }
+
+  &__sub { font-size: 15px; color: #5c5b56; }
+
+  &__cta {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 0 22px;
+    border-radius: 999px;
+    background: #16161a;
+    color: #fbfaf8;
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  /* A seta gira para baixo de tempos em tempos: o clique leva ao fim da página. */
+  &__seta {
+    width: 16px;
+    height: 16px;
+    animation: rpSeta 3.2s cubic-bezier(0.22, 0.8, 0.24, 1) infinite;
+  }
+
+  &__corpo:hover &__seta {
+    animation: none;
+    transform: rotate(90deg);
+  }
+
+  &__x {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid rgba(22, 22, 26, 0.1);
+    background: #ffffff;
+    color: #3d3c38;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.22, 0.8, 0.24, 1);
+
+    svg { width: 16px; height: 16px; }
+    &:hover { transform: rotate(90deg); }
+  }
+}
+
+/* Celular: largura toda, sem X, ~4 s no alto. Cobre o botão "+ criar" até a
+   pessoa interagir ou a alça descer; arrastar para baixo dispensa. */
+@media (max-width: 959px) {
+  .rp-alca {
+    left: 0;
+    right: 0;
+    width: auto;
+    border-radius: 22px 22px 0 0;
+    animation: rpAlcaCelular 5.4s cubic-bezier(0.22, 0.8, 0.24, 1) 2s both;
+
+    &__corpo { padding: 10px 18px 24px; gap: 12px; }
+    &__linha { flex-wrap: wrap; gap: 14px; padding-right: 0; }
+
+    &__marca {
+      width: 82px;
+      height: 64px;
+      border-radius: 14px;
+      font-size: 19px;
+    }
+
+    &__titulo { font-size: 22px; }
+    &__sub { font-size: 12.5px; line-height: 1.4; }
+    &__cta { flex: 1 1 100%; }
+    &__x { display: none; }
+
+    &--arrastando {
+      animation-play-state: paused;
+      translate: 0 var(--arraste);
+    }
+  }
+}
+
+@keyframes rpAlcaDesktop {
+  0% { transform: translate(-50%, 120%); }
+  5% { transform: translate(-50%, 0); }
+  88% { transform: translate(-50%, 0); }
+  96%, 100% { transform: translate(-50%, 120%); }
+}
+
+@keyframes rpAlcaCelular {
+  0% { transform: translateY(120%); }
+  9% { transform: translateY(0); }
+  83% { transform: translateY(0); }
+  95%, 100% { transform: translateY(120%); }
+}
+
+@keyframes rpSeta {
+  0%, 18% { transform: rotate(0); }
+  32%, 62% { transform: rotate(90deg); }
+  44% { transform: rotate(90deg) translateX(3px); }
+  52% { transform: rotate(90deg); }
+  78%, 100% { transform: rotate(0); }
+}

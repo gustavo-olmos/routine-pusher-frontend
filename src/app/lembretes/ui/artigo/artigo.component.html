@@ -1,0 +1,124 @@
+<article class="rp-artigo">
+  <header class="rp-artigo__capa">
+    <div class="rp-artigo__chapeu">
+      <span>Bastidores</span><span class="rp-artigo__fio"></span><span>Como funciona</span>
+    </div>
+    <h2 class="rp-artigo__titulo">Da frase<br /><em>ao JSON.</em></h2>
+    <p class="rp-artigo__linha-fina">
+      Como uma conversa em português vira um lembrete com uma recorrência que o cron não consegue
+      expressar.
+    </p>
+    <div class="rp-artigo__assinatura">
+      <span>por Gustavo Olmos</span><span>backend · IA · motor de regras</span><span>[tempo de leitura]</span>
+    </div>
+  </header>
+
+  <div class="rp-artigo__corpo">
+    <p class="rp-artigo__abertura">
+      <span class="rp-artigo__capitular" aria-hidden="true">O</span><span class="rp-sr">O</span> cron é
+      ótimo para dizer “todo dia 10 às nove”. O problema começa quando a vida pede outra coisa: o
+      último dia útil do mês, quatro dias depois da última rega, a segunda terça de cada mês — e,
+      se cair num feriado, antes. Nada disso cabe em cinco campos separados por espaço.
+    </p>
+    <p>
+      O Routine Pusher nasceu dessa lacuna. Em vez de pedir que a pessoa aprenda uma sintaxe, ele
+      aceita a frase como ela sairia numa conversa e deixa o trabalho de tradução para o sistema.
+    </p>
+    <h3>O caminho da frase</h3>
+    <p>[TEXTO: como a frase chega ao backend, qual modelo de IA a interpreta e como o pedido é estruturado — prompt, schema ou ambos.]</p>
+  </div>
+
+  <ol class="rp-artigo__etapas">
+    @for (e of etapas; track e.n) {
+      <li class="rp-artigo__etapa">
+        <span class="rp-artigo__etapa-n">{{ e.n }}</span>
+        <span class="rp-artigo__etapa-titulo">{{ e.titulo }}</span>
+        <span class="rp-artigo__etapa-texto">{{ e.texto }}</span>
+      </li>
+    }
+  </ol>
+
+  <div class="rp-artigo__corpo">
+    <p>
+      O coração do sistema é um motor de regras com uma strategy por tipo de lembrete — cron,
+      simples e complexos. Cada uma sabe calcular a sua própria sequência de datas, e é ela que
+      devolve as próximas execuções que aparecem na tela.
+    </p>
+  </div>
+
+  <blockquote class="rp-artigo__citacao">
+    “O cron sabe dizer <span>todo dia 10</span>. Não sabe dizer
+    <span>no último dia útil, antecipando o feriado</span>.”
+  </blockquote>
+
+  <div class="rp-artigo__corpo">
+    <h3>Dois JSONs, lado a lado</h3>
+    <p>
+      À esquerda, o rascunho que a IA monta a partir da frase — e que a pessoa revisa antes de
+      salvar. À direita, o que o sistema responde depois de confirmado, validado e agendado. É essa
+      a ponte que um chatbot constrói: de linguagem natural para dados que uma aplicação entende.
+    </p>
+  </div>
+
+  <div class="rp-artigo__jsons">
+    <figure>
+      <figcaption>1 · o que a IA devolve</figcaption>
+      <div class="rp-artigo__codigo"><rp-painel-json [linhas]="linhasIa" [cabecalho]="false" /></div>
+    </figure>
+    <figure>
+      <figcaption>2 · o que o sistema responde</figcaption>
+      <div class="rp-artigo__codigo"><rp-painel-json [linhas]="linhasResposta" [cabecalho]="false" /></div>
+    </figure>
+  </div>
+
+  <div class="rp-artigo__corpo">
+    <h3>O que vem depois</h3>
+    <p>[TEXTO: decisões de arquitetura, limites da demonstração e o que ainda falta construir.]</p>
+  </div>
+
+  <section id="rp-rotafin" class="rp-anuncio" aria-label="da RotaFin">
+    <div class="rp-artigo__chapeu">Também da RotaFin</div>
+    <div class="rp-anuncio__grade">
+      <div class="rp-anuncio__foto" aria-hidden="true">
+        <span class="rp-anuncio__marcador">[print da calculadora RotaFin]</span>
+        <span class="rp-anuncio__barras">
+          @for (b of [38, 52, 46, 64, 58, 76, 70, 88]; track $index) {
+            <span [style.height.%]="b"></span>
+          }
+        </span>
+      </div>
+      <div class="rp-anuncio__texto">
+        <span class="rp-anuncio__titulo">Simulador de<br /><em>financiamento.</em></span>
+        @if (convite(); as c) {
+          <p class="rp-convite">
+            Anotar <strong>{{ c.titulo }}</strong> resolve a data. Quanto essa parcela custa no
+            total, o simulador mostra mês a mês.
+          </p>
+        } @else {
+          <p>
+            Vai financiar um imóvel? Veja quanto a parcela custa de verdade, mês a mês, antes de
+            assinar o contrato.
+          </p>
+        }
+        <a
+          class="rp-anuncio__cta"
+          [href]="SIMULADOR_URL"
+          (click)="saida.emit(convite() ? 'convite_contextual' : 'artigo')">
+          conhecer o simulador
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M5 12h13M13 6.5l5.5 5.5L13 17.5"></path>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="rp-artigo__rodape">
+    <a href="https://github.com/gustavo-olmos/routine-pusher-frontend" target="_blank" rel="noreferrer">
+      github.com/gustavo-olmos/routine-pusher-frontend ↗
+    </a>
+    <a class="rp-footer__link--quiet" [href]="SIMULADOR_URL" (click)="saida.emit('rodape')">
+      simulador de financiamento RotaFin →
+    </a>
+  </footer>
+</article>

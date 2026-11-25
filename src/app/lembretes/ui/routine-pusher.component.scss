@@ -1,31 +1,53 @@
-/* Routine Pusher — glassmorphism. Tema via tokens; .rp-dark inverte tudo. */
+/* Routine Pusher — glassmorphism em dois momentos. Tema via tokens; .rp-dark
+   inverte tudo. As formas coloridas atrás dos painéis são o que o vidro
+   desfoca: sem elas, o vidro vira um retângulo cinza. */
 
 :host {
   --text: #16161a;
   --text-2: #3d3c38;
   --text-3: #5c5b56;
-  --text-4: #7c7b75;
+  --text-4: #6b6a65;
   --text-5: #8a8983;
   --accent: oklch(0.55 0.14 250);
   --accent-soft: oklch(0.55 0.14 250 / 0.18);
+  --azul: #2f5fd0;
+  --azul-hover: #2550b8;
+  --azul-sombra: rgba(47, 95, 208, 0.35);
   --page-bg: linear-gradient(165deg, #e3e4e6, #d5d9de 55%, #dcdad4);
-  --grid-ink: rgba(22, 22, 26, 0.07);
-  --glass-border: rgba(255, 255, 255, 0.62);
-  --glass-border-soft: rgba(255, 255, 255, 0.42);
-  --glass-fill: linear-gradient(150deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.06));
-  --glass-fill-quiet: linear-gradient(150deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
-  --glass-shadow: 0 16px 44px rgba(22, 22, 26, 0.16);
-  --glass-inset: inset 0 1.5px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-border-soft: rgba(255, 255, 255, 0.45);
+  --glass-fill: linear-gradient(150deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.1));
+  --glass-fill-quiet: linear-gradient(150deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06));
+  --glass-shadow: 0 12px 34px rgba(22, 22, 26, 0.1);
+  --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --painel-json-bg: rgba(250, 250, 252, 0.72);
+  --bolha: rgba(255, 255, 255, 0.42);
+  --campo: rgba(255, 255, 255, 0.42);
+  --tile: rgba(255, 255, 255, 0.28);
+  --row-hover: rgba(255, 255, 255, 0.32);
+  --row-ativo: rgba(255, 255, 255, 0.36);
   --rule: rgba(255, 255, 255, 0.7);
-  --hair: rgba(22, 22, 26, 0.14);
+  --hair: rgba(22, 22, 26, 0.12);
   --solid: #16161a;
   --solid-fg: #fbfaf8;
   --idle: rgba(22, 22, 26, 0.25);
+  --idle-soft: rgba(22, 22, 26, 0.06);
   --ok: oklch(0.55 0.15 150);
   --ok-soft: oklch(0.55 0.15 150 / 0.14);
+  --warn: #9a5a17;
+  --warn-soft: rgba(208, 130, 26, 0.14);
   --danger: oklch(0.55 0.19 25);
   --danger-soft: oklch(0.55 0.19 25 / 0.14);
-  --blob-opacity: 0.9;
+  --code-bg: rgba(250, 250, 252, 0.85);
+  --tk-chave: #2f5fd0;
+  --tk-texto: #2f8a57;
+  --tk-numero: #9c36b5;
+  --tk-literal: #8a8983;
+  --tk-pont: #6b6a65;
+  --tk-vazio: #b4b2a9;
+  --geleia-opacidade: 0.92;
+  --geleia-filtro: saturate(115%);
+  --ease-out: cubic-bezier(0.22, 0.8, 0.24, 1);
 
   display: block;
   color: var(--text);
@@ -33,6 +55,9 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* No escuro o vidro muda de natureza: o preenchimento branco cai muito, as
+   bordas ficam mais claras que o fundo e as sombras ficam pretas. A alça e o
+   artigo não mudam — são da RotaFin e da "revista". */
 :host(.rp-dark) {
   --text: #f2f1ec;
   --text-2: #cfcec7;
@@ -41,23 +66,41 @@
   --text-5: #8a8983;
   --accent: oklch(0.72 0.14 250);
   --accent-soft: oklch(0.72 0.14 250 / 0.22);
+  --azul-sombra: rgba(47, 95, 208, 0.45);
   --page-bg: linear-gradient(165deg, #17181e, #101218 55%, #16151b);
-  --grid-ink: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.3);
-  --glass-border-soft: rgba(255, 255, 255, 0.16);
-  --glass-fill: linear-gradient(150deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.03));
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-border-soft: rgba(255, 255, 255, 0.12);
+  --glass-fill: linear-gradient(150deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.02));
   --glass-fill-quiet: linear-gradient(150deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
-  --glass-shadow: 0 16px 44px rgba(0, 0, 0, 0.35);
-  --glass-inset: inset 0 1.5px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
-  --rule: rgba(255, 255, 255, 0.16);
-  --hair: rgba(255, 255, 255, 0.18);
+  --glass-shadow: 0 12px 34px rgba(0, 0, 0, 0.36);
+  --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  --painel-json-bg: rgba(22, 23, 30, 0.7);
+  --bolha: rgba(255, 255, 255, 0.08);
+  --campo: rgba(255, 255, 255, 0.08);
+  --tile: rgba(255, 255, 255, 0.06);
+  --row-hover: rgba(255, 255, 255, 0.08);
+  --row-ativo: rgba(255, 255, 255, 0.1);
+  --rule: rgba(255, 255, 255, 0.1);
+  --hair: rgba(255, 255, 255, 0.14);
   --solid: #f2f1ec;
   --solid-fg: #131419;
   --idle: rgba(255, 255, 255, 0.3);
+  --idle-soft: rgba(255, 255, 255, 0.06);
   --ok: oklch(0.76 0.16 150);
-  --ok-soft: oklch(0.76 0.16 150 / 0.18);
+  --ok-soft: oklch(0.76 0.16 150 / 0.16);
+  --warn: #e5a35a;
+  --warn-soft: rgba(229, 163, 90, 0.16);
   --danger: oklch(0.7 0.18 25);
   --danger-soft: oklch(0.7 0.18 25 / 0.18);
+  --code-bg: rgba(10, 11, 15, 0.55);
+  --tk-chave: #8fb0ff;
+  --tk-texto: #7fd3a0;
+  --tk-numero: #d3a6f5;
+  --tk-literal: #8a8983;
+  --tk-pont: #9a9993;
+  --tk-vazio: #4f4e4a;
+  --geleia-opacidade: 0.62;
+  --geleia-filtro: saturate(90%) brightness(0.85);
 }
 
 * { box-sizing: border-box; }
@@ -66,209 +109,774 @@
 .rp-muted { color: var(--text-3); }
 .rp-muted-2 { color: var(--text-5); }
 
-/* ---------- fundo ---------- */
+/* ---------- fundo e gelatinas ---------- */
 
 .rp-backdrop {
   position: fixed;
   inset: 0;
   z-index: 0;
-  overflow: hidden;
   pointer-events: none;
   background: var(--page-bg);
 }
 
-.rp-blob {
-  position: absolute;
-  display: block;
-  animation: rpDrift 26s ease-in-out infinite;
-
-  &--blue {
-    top: -10%; left: -14%;
-    width: 74vw; height: 74vw; max-width: 680px; max-height: 680px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, oklch(0.62 0.19 255 / 0.9), oklch(0.62 0.19 255 / 0) 68%);
-    filter: blur(34px);
-  }
-  &--amber {
-    top: 6%; left: 44%;
-    width: 34vw; height: 34vw; max-width: 300px; max-height: 300px;
-    border-radius: 26%;
-    transform: rotate(18deg);
-    background: linear-gradient(140deg, oklch(0.72 0.17 60), oklch(0.62 0.21 35));
-    filter: blur(4px);
-    opacity: var(--blob-opacity);
-    animation-duration: 34s;
-    animation-direction: reverse;
-  }
-  &--teal {
-    bottom: -12%; right: -12%;
-    width: 64vw; height: 64vw; max-width: 580px; max-height: 580px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 40% 40%, oklch(0.68 0.14 195 / 0.85), oklch(0.68 0.14 195 / 0) 70%);
-    filter: blur(30px);
-    animation-duration: 32s;
-    animation-direction: reverse;
-  }
-  &--violet {
-    top: 48%; left: -10%;
-    width: 30vw; height: 30vw; max-width: 260px; max-height: 260px;
-    border-radius: 50%;
-    background: linear-gradient(140deg, oklch(0.55 0.17 280), oklch(0.5 0.15 250));
-    filter: blur(6px);
-    opacity: 0.85;
-    animation-duration: 40s;
-  }
-}
-
-:host(.rp-dark) .rp-blob {
-  &--blue { background: radial-gradient(circle at 35% 35%, oklch(0.52 0.19 255 / 0.85), oklch(0.52 0.19 255 / 0) 68%); }
-  &--amber { background: linear-gradient(140deg, oklch(0.68 0.18 60), oklch(0.56 0.21 35)); }
-  &--teal { background: radial-gradient(circle at 40% 40%, oklch(0.58 0.14 195 / 0.8), oklch(0.58 0.14 195 / 0) 70%); }
-  &--violet { background: linear-gradient(140deg, oklch(0.5 0.18 280), oklch(0.44 0.16 250)); }
-}
-
-.rp-grid {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(var(--grid-ink) 1px, transparent 1px);
-  background-size: 22px 22px;
-  background-position: -1px -1px;
-}
-
-/* ---------- estrutura ---------- */
-
-.rp-page {
+.rp-hero {
   position: relative;
   z-index: 1;
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  padding: 28px 18px 0;
+  overflow: clip;
 }
 
-.rp-shell {
-  width: 100%;
-  max-width: 520px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  padding-bottom: 56px;
+.rp-geleias {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: min(1480px, 100%);
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
-/* ---------- header ---------- */
+/* Contorno que ondula (a gelatina) e flutuação lenta, em animações separadas
+   para não brigarem pelo mesmo `transform`. */
+.rp-geleia {
+  position: absolute;
+  display: block;
+  opacity: var(--geleia-opacidade);
+  filter: var(--geleia-filtro);
+  will-change: transform, border-radius;
+  animation:
+    rpGelatina 10s ease-in-out infinite alternate,
+    rpFlutua 24s ease-in-out infinite;
+
+  &--ambar {
+    top: 330px; left: 44%;
+    width: 230px; height: 220px;
+    background: linear-gradient(140deg, #f7b545, #ec6a2c);
+  }
+  &--azul {
+    top: 560px; left: 7%;
+    width: 190px; height: 190px;
+    background: linear-gradient(150deg, #4f8df5, #4a4fd6);
+    animation-duration: 9s, 30s;
+  }
+  &--teal {
+    top: 90px; right: 4%;
+    width: 240px; height: 230px;
+    background: linear-gradient(160deg, #6fe3cf, #2aa7b8);
+    animation-duration: 12s, 27s;
+  }
+  &--rosa {
+    bottom: 60px; right: 20%;
+    width: 150px; height: 150px;
+    background: linear-gradient(140deg, #f59ac4, #e2456a);
+    animation-duration: 8s, 21s;
+  }
+  &--violeta {
+    top: 470px; right: 3%;
+    width: 110px; height: 110px;
+    background: linear-gradient(140deg, #b69cf5, #7550d8);
+    animation-duration: 7s, 19s;
+  }
+}
+
+/* ---------- palco: cabeçalho + duas colunas, sem rolagem ---------- */
+
+.rp-palco {
+  position: relative;
+  z-index: 1;
+  max-width: 1480px;
+  height: 100vh;
+  min-height: 680px;
+  margin: 0 auto;
+  padding: 44px 64px 64px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  grid-template-rows: auto minmax(0, 1fr);
+  column-gap: 56px;
+  row-gap: 52px;
+}
+
+/* O alerta flutua acima do título para não abrir uma linha nova no grid. */
+.rp-palco > .rp-alerta {
+  position: absolute;
+  z-index: 6;
+  top: 12px;
+  left: 50%;
+  width: min(760px, calc(100% - 128px));
+  transform: translateX(-50%);
+  animation: rpEnter 0.35s var(--ease-out) backwards;
+}
+
+.rp-esq { grid-column: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.rp-dir { grid-column: 2; min-width: 0; min-height: 0; }
+
+.rp-so-celular { display: none; }
+
+/* ---------- cabeçalho ---------- */
 
 .rp-header {
+  grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 8px 0 4px;
-}
-
-.rp-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 6px 12px 6px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--glass-border);
-  background: var(--glass-fill);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--text-3);
-
-  &__dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-  }
-}
-
-.rp-acoes-topo {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* O sino some quando não há API (iPhone fora da Tela de Início); quando o
-   navegador bloqueou, ele fica visível e apagado — sumir esconderia o motivo
-   de o aviso não chegar. */
-.rp-sino {
-  &--ligado {
-    border-color: var(--ok);
-    color: var(--ok);
-  }
-
-  &:disabled {
-    cursor: default;
-    &:hover { transform: none; }
-  }
-
-  &:disabled:not(.rp-sino--ligado) { opacity: 0.45; }
+  animation: rpEnter 0.7s var(--ease-out) backwards;
 }
 
 .rp-titlerow {
   display: flex;
   align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 18px;
 }
 
-.rp-logo {
+.rp-logo-wrap {
+  position: relative;
   flex: none;
-  width: 46px;
-  height: 46px;
-  color: var(--text);
-  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.2));
+  display: flex;
+}
 
-  &__face { fill: rgba(255, 255, 255, 0.4); }
+/* Título e relógio inclinados no mesmo ângulo: corrida contra o tempo. */
+.rp-logo {
+  width: 62px;
+  height: 62px;
+  color: var(--text);
+  transform: skewX(-12deg) rotate(-6deg);
+
+  &__face { fill: rgba(255, 255, 255, 0.45); }
   &__ring { stroke: var(--hair); }
-  &__hand { fill: var(--accent); }
+  &__hand { fill: var(--azul); }
 }
 
 :host(.rp-dark) .rp-logo__face { fill: rgba(255, 255, 255, 0.1); }
 
 .rp-title {
   margin: 0;
-  font-size: 44px;
+  font-size: 58px;
+  line-height: 0.95;
+  font-style: italic;
   font-weight: 600;
-  line-height: 0.98;
   letter-spacing: -1.8px;
 }
 
+.rp-acoes-topo {
+  flex: none;
+  margin-left: auto;
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .rp-subtitle {
-  margin: 0;
-  flex: 1 1 190px;
-  min-width: 170px;
-  max-width: 26ch;
-  padding-left: 16px;
-  border-left: 1px solid var(--hair);
-  font-size: 15px;
+  margin: 0 0 0 80px;
+  font-size: 17px;
   line-height: 1.45;
   color: var(--text-2);
-  text-wrap: pretty;
 }
 
 .rp-token {
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 14px;
-  padding: 1px 6px;
-  border: 1px solid var(--glass-border);
+  font-size: 15px;
+  padding: 1px 7px;
+  border: 1px solid var(--hair);
   border-radius: 5px;
-  background: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(8px);
 }
 
-.rp-hairline {
-  height: 1px;
-  background: linear-gradient(to right, var(--text) 0 56px, var(--hair) 56px);
-  opacity: 0.7;
+/* Traços de velocidade atrás do relógio, que passam e somem devagar. */
+.rp-vento {
+  position: absolute;
+  right: calc(100% + 4px);
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  transform: translateY(-40%);
+
+  span {
+    display: block;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--text);
+    opacity: 0;
+    animation: rpVento 3.2s ease-in-out infinite;
+
+    &:nth-child(1) { width: 18px; }
+    &:nth-child(2) { width: 26px; animation-delay: 0.25s; }
+    &:nth-child(3) { width: 14px; animation-delay: 0.5s; }
+  }
+}
+
+/* ---------- entradas e saída entre os momentos ---------- */
+
+/* Fill `backwards`, nunca `both`: animação de opacidade retida depois do fim
+   faz o Chrome tratar o elemento como backdrop root, e o backdrop-filter de
+   quem está dentro para de enxergar as formas atrás. */
+.rp-entra-esq { animation: rpEntraEsq 0.6s var(--ease-out) backwards; }
+.rp-entra-dir { animation: rpEntraDir 0.6s var(--ease-out) 0.08s backwards; }
+
+.rp-saindo {
+  transition: transform 0.42s cubic-bezier(0.5, 0, 0.75, 0), opacity 0.38s ease;
+  transform: translateX(90px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- momento 1: card do lembrete selecionado ---------- */
+
+.rp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 32px 34px;
+  border: 1px solid var(--glass-border);
+  border-radius: 26px;
+  background: var(--glass-fill);
+  backdrop-filter: blur(30px) saturate(170%);
+  -webkit-backdrop-filter: blur(30px) saturate(170%);
+  box-shadow: var(--glass-shadow), var(--glass-inset);
+  color: var(--text);
+  animation: rpEnter 0.45s var(--ease-out) backwards;
+
+  &__titulo {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+
+    .rp-categoria { flex: none; margin-top: 6px; }
+  }
+
+  &__textos { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+  &__label {
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: -0.4px;
+    text-wrap: pretty;
+  }
+
+  &__resumo { font-size: 13px; line-height: 1.45; color: var(--text-3); }
+
+  &__sem-datas { margin: 0; font-size: 13px; color: var(--text-3); }
+
+  &__acoes {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+  }
+
+  &__espaco { flex: 1; }
+
+  &--estado { padding: 30px 32px; }
+}
+
+.rp-datas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.rp-data {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 12px 12px 11px;
+  border: 1px solid var(--glass-border-soft);
+  border-radius: 14px;
+  background: var(--tile);
+  animation: rpEnter 0.45s var(--ease-out) backwards;
+
+  @for $i from 2 through 5 {
+    &:nth-child(#{$i}) { animation-delay: #{($i - 1) * 40}ms; }
+  }
+
+  &__dia { font-size: 16px; }
+  &__detalhe { font-size: 12.5px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__gap { margin-top: 6px; font-size: 11px; color: var(--text-3); }
+
+  &--primeira {
+    border-color: var(--solid);
+    background: var(--solid);
+    color: var(--solid-fg);
+
+    .rp-data__detalhe,
+    .rp-data__gap { color: color-mix(in oklab, var(--solid-fg) 72%, transparent); }
+  }
+}
+
+/* Confirmação de exclusão: ocupa o rodapé do card e entra de lado. */
+.rp-excluir {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  animation: rpExcluirIn 0.3s var(--ease-out) backwards;
+
+  &__texto { flex: 1; font-size: 15px; }
+
+  .rp-secondary { min-height: 44px; padding: 0 16px; }
+}
+
+.rp-excluir-sim {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--danger);
+  border-radius: 12px;
+  background: var(--danger);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.15s, filter 0.15s;
+
+  &:hover { transform: translateY(-1px); filter: brightness(1.05); }
+}
+
+/* ---------- o "+" ---------- */
+
+.rp-mais-wrap {
+  margin-top: auto;
+  padding: 40px 0 8px;
+  display: flex;
+  justify-content: center;
+}
+
+.rp-mais {
+  width: 84px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  overflow: hidden;
+  border: none;
+  border-radius: 999px;
+  background: var(--azul);
+  color: #ffffff;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 14px 30px var(--azul-sombra);
+  transition:
+    width 0.45s var(--ease-out),
+    background 0.3s,
+    box-shadow 0.3s,
+    transform 0.2s;
+
+  svg { flex: none; width: 32px; height: 32px; }
+
+  &__rotulo {
+    max-width: 0;
+    opacity: 0;
+    transition: opacity 0.25s, max-width 0.45s var(--ease-out);
+  }
+
+  &__curto { display: none; }
+
+  &:hover,
+  &:focus-visible {
+    width: 292px;
+    background: var(--azul-hover);
+    box-shadow: 0 18px 38px var(--azul-sombra);
+
+    .rp-mais__rotulo { max-width: 200px; opacity: 1; }
+  }
+
+  &:active { transform: scale(0.96); }
+}
+
+/* ---------- momento 1: lista de lembretes ativos ---------- */
+
+.rp-painel-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px 18px;
+  overflow-y: auto;
+  border: 1px solid var(--glass-border);
+  border-radius: 26px;
+  background: var(--glass-fill);
+  backdrop-filter: blur(30px) saturate(170%);
+  -webkit-backdrop-filter: blur(30px) saturate(170%);
+  box-shadow: var(--glass-shadow), var(--glass-inset);
+  scrollbar-width: thin;
+
+  .rp-sectionhead { padding: 0 6px 6px; }
+
+  &__vazio {
+    margin: 0;
+    padding: 6px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-3);
+  }
+}
+
+.rp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  > li {
+    animation: rpEnter 0.45s var(--ease-out) backwards;
+
+    @for $i from 2 through 6 {
+      &:nth-child(#{$i}) { animation-delay: #{($i - 1) * 40}ms; }
+    }
+  }
+}
+
+.rp-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  border-radius: 14px;
+  transition: background 0.25s var(--ease-out);
+
+  /* barra de seleção que cresce do centro, em vez de aparecer seca */
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 14px;
+    bottom: 14px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--azul);
+    transform: scaleY(0);
+    transition: transform 0.3s var(--ease-out);
+  }
+
+  &:hover { background: var(--row-hover); }
+
+  &__main { padding: 10px 14px !important; min-height: 56px; }
+
+  &__left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+  &__dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--idle); }
+
+  &__label {
+    font-size: 15px;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &--active {
+    background: var(--row-ativo);
+    &::before { transform: scaleY(1); }
+  }
+}
+
+/* ---------- momento 2: chat ---------- */
+
+.rp-chat {
+  grid-column: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 26px 28px 20px;
+  border: 1px solid var(--glass-border);
+  border-radius: 26px;
+  background: var(--glass-fill);
+  backdrop-filter: blur(30px) saturate(170%);
+  -webkit-backdrop-filter: blur(30px) saturate(170%);
+  box-shadow: var(--glass-shadow), var(--glass-inset);
+
+  &__head {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    .rp-sectionhead__acoes { margin-left: auto; }
+  }
+
+  &__titulo { font-size: 20px; font-weight: 500; letter-spacing: -0.3px; }
+
+  &__corpo {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 24px 2px 16px;
+    scrollbar-width: thin;
+  }
+}
+
+.rp-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px 0 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: var(--bolha);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s, transform 0.2s;
+
+  svg { width: 16px; height: 16px; transition: transform 0.25s var(--ease-out); }
+  &:hover { color: var(--text); }
+  &:hover svg { transform: translateX(-2px); }
+}
+
+.rp-bolha {
+  align-self: flex-start;
+  max-width: 82%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 18px;
+  border: 1px solid var(--glass-border-soft);
+  border-radius: 20px 20px 20px 6px;
+  background: var(--bolha);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-2);
+  animation: rpBolha 0.45s var(--ease-out) backwards;
+
+  em { font-style: normal; color: var(--text); }
+  strong { font-weight: 500; color: var(--text); }
+
+  &--eu {
+    align-self: flex-end;
+    border: none;
+    border-radius: 20px 20px 6px 20px;
+    background: var(--solid);
+    color: var(--solid-fg);
+  }
+
+  &--ok {
+    border-color: color-mix(in oklab, var(--ok) 40%, transparent);
+    background: var(--ok-soft);
+    color: var(--text);
+  }
+
+  &--digitando {
+    flex-direction: row;
+    gap: 5px;
+
+    span {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-4);
+      animation: rpPulsar 1.2s ease-in-out infinite;
+
+      &:nth-child(2) { animation-delay: 0.15s; }
+      &:nth-child(3) { animation-delay: 0.3s; }
+    }
+  }
+
+  &__acoes { display: flex; flex-wrap: wrap; gap: 10px; }
+}
+
+.rp-criar,
+.rp-ajustar,
+.rp-ver {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+
+  svg { width: 16px; height: 16px; }
+  &:hover:not(:disabled) { transform: translateY(-1px); }
+  &:disabled { opacity: 0.6; cursor: progress; }
+}
+
+.rp-criar {
+  border: none;
+  background: var(--azul);
+  color: #ffffff;
+  box-shadow: 0 8px 18px var(--azul-sombra);
+
+  &:hover:not(:disabled) { background: var(--azul-hover); }
+}
+
+.rp-ajustar {
+  border: 1px solid var(--hair);
+  background: var(--bolha);
+  color: var(--text-2);
+  font-weight: 400;
+}
+
+.rp-ver {
+  align-self: flex-start;
+  border: 1px solid var(--solid);
+  background: var(--solid);
+  color: var(--solid-fg);
+}
+
+.rp-selo-201 {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.rp-exemplos {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+
+.rp-exemplo {
+  padding: 7px 13px;
+  border: 1px solid var(--glass-border-soft);
+  border-radius: 999px;
+  background: var(--tile);
+  color: var(--text-3);
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s, transform 0.2s var(--ease-out);
+
+  &:hover { color: var(--text); background: var(--bolha); transform: translateY(-1px); }
+}
+
+.rp-composer {
+  flex: none;
+
+  &__box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 14px 12px 18px;
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    background: var(--campo);
+    box-shadow: var(--glass-inset);
+    transition: box-shadow 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+
+    &:focus-within {
+      transform: translateY(-1px);
+      box-shadow: var(--glass-inset), 0 0 0 3px var(--accent-soft);
+    }
+  }
+
+  &__input {
+    width: 100%;
+    min-height: 52px;
+    max-height: 140px;
+    padding: 2px 4px 0 0;
+    border: none;
+    outline: none;
+    resize: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text);
+
+    &::placeholder { color: var(--text-5); }
+  }
+
+  &__actions { display: flex; }
+}
+
+.rp-send {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--idle);
+  color: var(--text-4);
+  cursor: pointer;
+  transition: background 0.3s var(--ease-out), color 0.3s, transform 0.25s var(--ease-out), box-shadow 0.3s;
+
+  svg { width: 20px; height: 20px; transition: transform 0.3s var(--ease-out); }
+
+  &--ready {
+    background: var(--solid);
+    color: var(--solid-fg);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+  }
+
+  &--ready:hover svg { transform: translateX(2px); }
+  &:hover { transform: scale(1.05); }
+  &:active { transform: scale(0.94); }
+}
+
+.rp-persistencia {
+  flex: none;
+  margin: 10px 0 0;
+  padding: 0 6px;
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--text-5);
+  text-wrap: pretty;
+}
+
+/* ---------- momento 2: painel do JSON ---------- */
+
+.rp-painel-json {
+  padding: 22px 22px 18px;
+  border: 1px solid var(--glass-border);
+  border-radius: 26px;
+  background: var(--painel-json-bg);
+  backdrop-filter: blur(30px) saturate(170%);
+  -webkit-backdrop-filter: blur(30px) saturate(170%);
+  box-shadow: var(--glass-shadow), var(--glass-inset);
+
+  rp-painel-json { height: 100%; }
+}
+
+/* ---------- dica de rolagem ---------- */
+
+.rp-dica {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  text-decoration: none;
+  white-space: nowrap;
+
+  svg { width: 14px; height: 14px; animation: rpDica 2s ease-in-out infinite; }
+  &:hover { color: var(--text); }
 }
 
 /* ---------- rótulos de seção ---------- */
@@ -305,224 +913,6 @@
   &:hover { color: var(--text); }
 }
 
-/* ---------- carrossel ---------- */
-
-.rp-carousel {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  /* Era 64px enquanto o trilho ficava ao lado dos cards. Ele passou para
-     baixo e ocupa 48px que antes eram respiro, então a margem devolve isso
-     para a página manter o mesmo ritmo entre as seções. */
-  margin-bottom: 40px;
-}
-
-.rp-carousel__row {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.rp-viewport {
-  flex: 1;
-  min-width: 0;
-  height: 392px;
-  padding: 26px 16px;
-  margin: -26px -16px;
-  overflow: hidden;
-}
-
-/* O gap tem de casar com `GAP_CARDS` no .ts: o deslocamento é
-   `-100% - gap` por card, e 100% é a largura da própria trilha. */
-.rp-track {
-  display: flex;
-  gap: 24px;
-  transition: transform 0.65s cubic-bezier(0.22, 0.85, 0.25, 1);
-}
-
-.rp-card {
-  flex: none;
-  width: 100%;
-  height: 340px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 22px;
-  border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  background: var(--glass-fill);
-  backdrop-filter: blur(34px) saturate(170%);
-  -webkit-backdrop-filter: blur(34px) saturate(170%);
-  box-shadow: var(--glass-shadow), var(--glass-inset);
-  color: var(--text);
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: transform 0.18s, box-shadow 0.18s;
-
-  &:hover { transform: translateY(-2px); }
-  &:active { transform: translateY(0); }
-
-  &__head,
-  &__foot { display: flex; flex-direction: column; gap: 14px; }
-
-  &__label {
-    font-size: 22px;
-    font-weight: 500;
-    line-height: 1.28;
-    letter-spacing: -0.3px;
-    text-wrap: pretty;
-  }
-
-  &__meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-    font-size: 11.5px;
-  }
-}
-
-/* ---------- timeline do card ---------- */
-
-.rp-timeline {
-  position: relative;
-  height: 62px;
-  padding: 0 6px;
-
-  &__axis {
-    position: absolute;
-    left: 6px; right: 6px; top: 22px;
-    height: 1px;
-    background: var(--hair);
-  }
-
-  &__cap {
-    position: absolute;
-    top: 18px;
-    width: 1px;
-    height: 9px;
-    background: var(--idle);
-
-    &--start { left: 6px; }
-    &--end { right: 6px; }
-  }
-}
-
-.rp-tick {
-  position: absolute;
-  top: 0;
-  width: 44px;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
-  &__dot {
-    width: 6px;
-    height: 6px;
-    margin-top: 19.5px;
-    border-radius: 50%;
-    border: 1.5px solid var(--idle);
-    background: rgba(255, 255, 255, 0.3);
-  }
-  &__stem { width: 1px; height: 10px; background: var(--hair); }
-  &__label {
-    margin-top: 5px;
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    font-size: 10px;
-    letter-spacing: -0.2px;
-    color: var(--text-5);
-  }
-
-  &--active {
-    .rp-tick__dot {
-      width: 9px;
-      height: 9px;
-      margin-top: 18px;
-      background: var(--accent);
-      border-color: var(--accent);
-      box-shadow: 0 0 0 4px var(--accent-soft);
-    }
-    .rp-tick__stem { height: 12px; }
-    .rp-tick__label { color: var(--text); }
-  }
-}
-
-.rp-next {
-  display: flex;
-  align-items: baseline;
-  gap: 9px;
-  font-size: 12px;
-
-  &__value { font-size: 14.5px; color: var(--text); }
-}
-
-.rp-cta {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding-top: 12px;
-  border-top: 1px solid var(--rule);
-  color: var(--accent);
-  font-size: 13.5px;
-  font-weight: 500;
-
-  svg { width: 15px; height: 15px; }
-}
-
-/* ---------- rail de navegação ---------- */
-
-.rp-rail {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-
-  &__btn {
-    width: 34px;
-    height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--glass-border);
-    border-radius: 50%;
-    background: var(--glass-fill);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    color: var(--text-2);
-    cursor: pointer;
-    transition: transform 0.15s, background 0.15s;
-
-    svg { width: 15px; height: 15px; }
-    &:active { transform: scale(0.92); }
-  }
-}
-
-.rp-dots {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.rp-dot {
-  width: 7px;
-  height: 7px;
-  padding: 0;
-  border: none;
-  border-radius: 4px;
-  background: var(--idle);
-  cursor: pointer;
-  transition: width 0.35s cubic-bezier(0.22, 0.85, 0.25, 1), background 0.3s;
-
-  /* Cresce no eixo em que o carrossel anda — antes era a altura. */
-  &--active {
-    width: 22px;
-    background: var(--accent);
-  }
-}
 
 /* ---------- selos de cron ---------- */
 
@@ -534,7 +924,6 @@
   padding: 4px 8px;
   border-radius: 8px;
   white-space: nowrap;
-  backdrop-filter: blur(8px);
   border: 1px solid var(--glass-border);
   background: var(--glass-fill-quiet);
   color: var(--text-2);
@@ -559,178 +948,6 @@
     color: var(--text-4);
   }
 }
-
-/* ---------- lista de exemplos ---------- */
-
-.rp-examples { display: flex; flex-direction: column; gap: 8px; }
-
-.rp-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.rp-row {
-  width: 100%;
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 13px;
-  border: 1px solid var(--glass-border-soft);
-  border-radius: 4px;
-  background: var(--glass-fill-quiet);
-  backdrop-filter: blur(26px) saturate(170%);
-  -webkit-backdrop-filter: blur(26px) saturate(170%);
-  color: var(--text);
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.16s, border-color 0.16s, box-shadow 0.16s;
-
-  &__left {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    min-width: 0;
-  }
-
-  &__dot {
-    flex: none;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--idle);
-  }
-
-  &__label {
-    font-size: 14.5px;
-    line-height: 1.35;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &--active {
-    border-color: var(--glass-border);
-    background: var(--glass-fill);
-    box-shadow: inset 3px 0 0 var(--accent), var(--glass-shadow);
-
-    .rp-row__dot {
-      background: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-soft);
-    }
-  }
-}
-
-/* ---------- composer ---------- */
-
-.rp-composer {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  margin-top: -12px;
-
-  &__box {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 16px 14px 12px 18px;
-    border: 1px solid var(--glass-border);
-    border-radius: 26px;
-    background: var(--glass-fill);
-    backdrop-filter: blur(34px) saturate(175%);
-    -webkit-backdrop-filter: blur(34px) saturate(175%);
-    box-shadow: var(--glass-shadow), var(--glass-inset);
-    transition: box-shadow 0.18s, border-color 0.18s;
-
-    &:focus-within {
-      box-shadow: var(--glass-shadow), 0 0 0 2px var(--accent-soft), var(--glass-inset);
-    }
-  }
-
-  &__input {
-    width: 100%;
-    min-height: 84px;
-    max-height: 200px;
-    padding: 2px 4px 0 0;
-    border: none;
-    outline: none;
-    resize: none;
-    background: transparent;
-    font-family: inherit;
-    font-size: 16px;
-    line-height: 1.5;
-    color: var(--text);
-
-    &::placeholder { color: var(--text-5); }
-  }
-
-  &__actions {
-    display: flex;
-    justify-content: flex-end;
-  }
-}
-
-.rp-send {
-  flex: none;
-  width: 46px;
-  height: 46px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--glass-border);
-  border-radius: 50%;
-  background: var(--idle);
-  color: var(--text-4);
-  cursor: pointer;
-  transition: background 0.16s, transform 0.16s, box-shadow 0.16s;
-
-  svg { width: 20px; height: 20px; }
-
-  &--ready {
-    background: var(--solid);
-    color: var(--solid-fg);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
-  }
-
-  &:hover { transform: scale(1.06); }
-  &:active { transform: scale(0.94); }
-}
-
-/* ---------- rodapé ---------- */
-
-.rp-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 6px;
-  padding: 14px 18px;
-  border: 1px solid var(--glass-border-soft);
-  border-radius: 16px;
-  background: var(--glass-fill-quiet);
-  backdrop-filter: blur(28px) saturate(160%);
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  font-size: 13px;
-
-  &__link {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 7px 0;
-    color: var(--text);
-    text-decoration: none;
-    font-size: 13px;
-
-    svg { width: 12px; height: 12px; }
-    &:hover { color: var(--accent); }
-    &--quiet { color: var(--text-3); }
-  }
-}
-
 /* ---------- modal / folha ---------- */
 
 .rp-overlay {
@@ -740,10 +957,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(22, 22, 26, 0.26);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  animation: rpFade 0.18s ease both;
+  /* Sem backdrop-filter aqui: com ele o overlay vira o "backdrop root" do
+     painel, e o blur do painel passa a enxergar só o overlay, não a página. */
+  background: rgba(22, 22, 26, 0.3);
+  animation: rpFade 0.25s ease backwards;
 
   &--sheet { align-items: flex-end; }
 }
@@ -761,12 +978,12 @@
   overflow: auto;
   border: 1px solid var(--glass-border);
   border-radius: 22px;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.24));
+  background: linear-gradient(160deg, rgba(250, 250, 252, 0.86), rgba(240, 241, 244, 0.74));
   backdrop-filter: blur(30px) saturate(180%);
   -webkit-backdrop-filter: blur(30px) saturate(180%);
   box-shadow: 0 30px 70px rgba(22, 22, 26, 0.26);
   color: var(--text);
-  animation: rpModalIn 0.2s ease both;
+  animation: rpModalIn 0.38s var(--ease-out) backwards;
 
   &--sheet {
     width: 100%;
@@ -774,7 +991,7 @@
     max-height: 88vh;
     border-radius: 24px 24px 0 0;
     border-bottom: none;
-    animation: rpSheetUp 0.26s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+    animation: rpSheetUp 0.42s var(--ease-out) backwards;
   }
 
   &__head {
@@ -831,56 +1048,6 @@
   &:hover { color: var(--text); }
 }
 
-.rp-occurrences {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.rp-occurrence {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 13px;
-  border: 1px solid var(--glass-border-soft);
-  border-radius: 12px;
-  background: var(--glass-fill-quiet);
-  animation-duration: 0.34s;
-  animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
-  animation-fill-mode: both;
-
-  &--first {
-    border-color: var(--glass-border);
-    background: var(--glass-fill);
-    box-shadow: var(--glass-shadow);
-  }
-
-  &__left { display: flex; align-items: baseline; gap: 11px; }
-  &__n { width: 1.6ch; font-size: 11px; color: var(--text-5); }
-  &__date { font-size: 15px; letter-spacing: -0.2px; }
-  &__weekday { font-size: 12.5px; color: var(--text-3); }
-}
-
-.rp-gap {
-  flex: none;
-  font-size: 11px;
-  padding: 3px 7px;
-  border: 1px solid var(--glass-border-soft);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-3);
-
-  &--first {
-    background: var(--solid);
-    border-color: var(--solid);
-    color: var(--solid-fg);
-  }
-}
-
 .rp-primary {
   flex: 1 1 auto;
   min-height: 46px;
@@ -911,44 +1078,6 @@
 
   &:hover { color: var(--text); }
 }
-
-/* ---------- animações ---------- */
-
-@keyframes rpRiseA {
-  from { opacity: 0; transform: translateY(9px); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes rpRiseB {
-  from { opacity: 0; transform: translateY(9px); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes rpFade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes rpSheetUp {
-  from { transform: translateY(100%); }
-  to { transform: none; }
-}
-@keyframes rpModalIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes rpDrift {
-  0% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(4%, -3%, 0) scale(1.08); }
-  100% { transform: translate3d(0, 0, 0) scale(1); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rp-blob, .rp-track, .rp-occurrence, .rp-panel, .rp-overlay,
-  /* peças acrescentadas depois: mesma regra, mesma intenção */
-  .rp-tema svg, .rp-aviso, .rp-aviso__pulso, .rp-convite, .rp-esqueleto__linha, .rp-girando {
-    animation: none;
-    transition: none;
-  }
-}
-
 /* ========================================================================== */
 /* Peças acrescentadas ao ligar a tela na API. Mesmos tokens, mesmo vidro:     */
 /* nada aqui redefine o design original — só estende.                          */
@@ -965,16 +1094,6 @@
 .rp-composer__contador {
   font-size: 10.5px;
   letter-spacing: 0.06em;
-}
-
-.rp-eyebrow__link {
-  padding-left: 9px;
-  border-left: 1px solid var(--hair);
-  color: var(--text-3);
-  text-decoration: none;
-  transition: color 0.15s;
-
-  &:hover { color: var(--text); }
 }
 
 /* ---- alerta de erro ------------------------------------------------------ */
@@ -1038,15 +1157,6 @@
 
 /* ---- carga e vazio ------------------------------------------------------- */
 
-/* Herda o padding/margin negativos de .rp-viewport de propósito: eles se anulam,
-   deixando a caixa alinhada com a borda da seção enquanto a sombra ainda pode
-   vazar. Zerar a margem aqui empurrava o estado vazio 16px para dentro. */
-.rp-viewport--estado {
-  display: flex;
-  align-items: center;
-  height: auto;
-}
-
 .rp-esqueleto {
   display: flex;
   flex-direction: column;
@@ -1106,74 +1216,6 @@
   color: var(--text-4);
 }
 
-/* ---- convite ao simulador ------------------------------------------------ */
-
-.rp-convite {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px;
-  border: 1px solid var(--accent);
-  border-radius: 20px;
-  background: var(--glass-fill);
-  backdrop-filter: blur(30px) saturate(170%);
-  -webkit-backdrop-filter: blur(30px) saturate(170%);
-  box-shadow: var(--glass-shadow), 0 0 0 3px var(--accent-soft);
-  animation: rpModalIn 0.24s ease both;
-
-  &__texto {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-    flex: 1 1 260px;
-    min-width: 0;
-  }
-
-  &__frase {
-    margin: 0;
-    font-size: 13.5px;
-    line-height: 1.55;
-    color: var(--text-2);
-    text-wrap: pretty;
-
-    strong {
-      font-weight: 500;
-      color: var(--text);
-    }
-  }
-
-  &__acoes {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  /* .rp-primary nasceu para <button>; num <a> falta o reset de link. */
-  &__cta {
-    flex: none;
-    display: inline-flex;
-    align-items: center;
-    text-decoration: none;
-    white-space: nowrap;
-  }
-
-  &__x {
-    border: none;
-    background: none;
-    padding: 4px 0;
-    color: var(--text-4);
-    font-family: inherit;
-    font-size: 12px;
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-
-    &:hover { color: var(--text); }
-  }
-}
-
 /* ---- estados de botão ---------------------------------------------------- */
 
 .rp-send--enviando { cursor: progress; }
@@ -1224,7 +1266,7 @@
   font-family: inherit;
   text-align: left;
   cursor: pointer;
-  animation: rpAvisoIn 0.28s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+  animation: rpAvisoIn 0.28s cubic-bezier(0.2, 0.8, 0.25, 1) backwards;
 
   &__pulso {
     flex: none;
@@ -1259,16 +1301,6 @@
 }
 
 /* ---- detalhe e formulário ------------------------------------------------ */
-
-.rp-panel__sub {
-  font-size: 11.5px;
-  line-height: 1.45;
-}
-
-.rp-occurrence--vazia {
-  justify-content: center;
-  padding: 18px 0;
-}
 
 .rp-panel--form { width: 520px; }
 
@@ -1422,22 +1454,6 @@
   }
 }
 
-/* Os blobs foram compostos para uma janela de ~1460px, mas são posicionados em
-   % de um .rp-backdrop preso ao viewport. Num monitor largo, `left: 44%` joga o
-   âmbar para longe do título e os demais fogem para os cantos, deixando o meio
-   cinza. Ancorando o conjunto numa faixa centrada da largura de referência, a
-   composição acompanha a coluna de conteúdo em qualquer tela — e em janelas
-   menores que 1460px nada muda. */
-.rp-blobs {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 100%;
-  max-width: 1460px;
-  transform: translateX(-50%);
-}
-
 /* ---- alternador de tema -------------------------------------------------- */
 
 /* O eyebrow era `align-self: flex-start` solto no header; agora divide a linha
@@ -1472,7 +1488,7 @@
   svg {
     width: 16px;
     height: 16px;
-    animation: rpTemaIn 0.22s ease both;
+    animation: rpTemaIn 0.22s ease backwards;
   }
 
   &:hover { color: var(--text); }
@@ -1485,11 +1501,6 @@
 }
 
 /* ---- ações do detalhe ---------------------------------------------------- */
-
-/* Só o painel de detalhe: o do formulário segue com os botões largos de texto. */
-.rp-panel:not(.rp-panel--form) .rp-panel__actions {
-  justify-content: flex-end;
-}
 
 .rp-acao {
   flex: none;
@@ -1514,13 +1525,6 @@
     opacity: 0.4;
     cursor: not-allowed;
     &:hover { transform: none; }
-  }
-
-  /* Em repouso os dois são neutros; a cor só aparece na intenção. */
-  &--confirmar:hover:not(:disabled) {
-    border-color: var(--ok);
-    background: var(--ok-soft);
-    color: var(--ok);
   }
 
   &--excluir:hover {
@@ -1552,39 +1556,6 @@ li.rp-row { cursor: default; }
   cursor: pointer;
 }
 
-.rp-row__ok {
-  flex: none;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--idle);
-  border-radius: 50%;
-  background: transparent;
-  color: var(--text-4);
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.15s;
-
-  svg { width: 13px; height: 13px; }
-
-  &:hover:not(:disabled) {
-    border-color: var(--ok);
-    background: var(--ok-soft);
-    color: var(--ok);
-  }
-
-  &:active:not(:disabled) { transform: scale(0.9); }
-
-  /* Continua na tela depois de concluído para os selos não dançarem de linha
-     em linha — e o verde apagado já diz que está feito. */
-  &--feito {
-    border-color: var(--ok);
-    color: var(--ok);
-    opacity: 0.55;
-    cursor: default;
-  }
-}
 
 /* ---- edição -------------------------------------------------------------- */
 
@@ -1640,26 +1611,6 @@ li.rp-row { cursor: default; }
     background: color-mix(in oklab, var(--cor-categoria) 22%, transparent);
     color: var(--text);
   }
-}
-
-/* O card virou <div> e o CTA virou <button>: reset para ele seguir parecendo
-   o link do design, e o cursor sai do card inteiro, que já não é clicável. */
-.rp-card { cursor: default; }
-
-button.rp-cta {
-  width: 100%;
-  border: none;
-  background: none;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.rp-panel__sub {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  flex-wrap: wrap;
 }
 
 /* ---- escolha de categoria ------------------------------------------------- */
@@ -1869,20 +1820,6 @@ button.rp-row:disabled {
   color: var(--text-3);
 }
 
-.rp-card__titulo {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-
-  .rp-card__label { min-width: 0; }
-
-  .rp-categoria {
-    flex: none;
-    margin-top: 4px;
-  }
-}
-
 /* Aviso de reagendamento: informa, não impede — por isso âmbar do próprio
    gradiente do fundo, e não a cor de erro. */
 .rp-form__aviso {
@@ -1896,12 +1833,212 @@ button.rp-row:disabled {
   color: var(--text-3);
 }
 
-/* A janela de 48h é o limite mais duro do demo: um lembrete para daqui a duas
-   semanas não sobrevive se a pessoa não voltar em dois dias. Melhor dizer. */
-.rp-persistencia {
-  margin: -8px 0 0;
-  font-size: 10.5px;
-  line-height: 1.55;
-  color: var(--text-5);
-  text-wrap: pretty;
+
+/* Concluir: neutro em repouso, verde na intenção; concluído fica verde apagado. */
+.rp-acao--concluir {
+  &:hover:not(:disabled) {
+    border-color: var(--ok);
+    background: var(--ok-soft);
+    color: var(--ok);
+  }
+}
+
+.rp-acao--feito {
+  border-color: var(--ok);
+  color: var(--ok);
+  opacity: 0.55;
+}
+
+/* ========================================================================== */
+/* Celular e janelas estreitas: uma coluna que rola.                          */
+/* ========================================================================== */
+
+@media (max-width: 959px) {
+  .rp-palco {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100svh;
+    padding: 20px 18px 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .rp-palco > .rp-alerta { top: 8px; width: calc(100% - 36px); }
+
+  .rp-so-celular { display: block; }
+  span.rp-so-celular { display: inline; }
+  .rp-so-computador { display: none !important; }
+
+  .rp-header { gap: 8px; }
+  .rp-titlerow { gap: 10px; }
+  .rp-logo { width: 36px; height: 36px; }
+  .rp-title { font-size: 29px; line-height: 1; letter-spacing: -0.9px; white-space: nowrap; }
+  .rp-acoes-topo { gap: 6px; align-self: center; }
+  .rp-subtitle { margin-left: 46px; font-size: 14px; }
+  .rp-token { font-size: 13px; padding: 0 5px; }
+  .rp-vento { display: none; }
+
+  .rp-esq { gap: 20px; }
+  .rp-card { padding: 20px 18px 16px; gap: 14px; border-radius: 22px; }
+  .rp-card__titulo { flex-direction: column-reverse; gap: 8px; }
+  .rp-card__titulo .rp-categoria { align-self: flex-start; margin-top: 0; }
+  .rp-card__label { font-size: 21px; }
+  .rp-card__resumo { font-size: 12px; }
+
+  /* 5 colunas não cabem em 390px: as datas viram uma faixa que desliza. */
+  .rp-datas {
+    display: flex;
+    gap: 8px;
+    margin: 0 -18px;
+    padding: 0 18px 2px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .rp-data { flex: none; width: 104px; scroll-snap-align: start; }
+
+  .rp-saindo { transform: translateX(70px); }
+
+  .rp-painel-lista { padding: 16px 12px; border-radius: 20px; overflow: visible; }
+
+  /* O "+" vira pílula fixa: sem mouse não há hover, então ele já nasce com
+     texto, e encolhe para o círculo depois que a pessoa rola. */
+  .rp-mais-wrap {
+    position: fixed;
+    z-index: 20;
+    right: 18px;
+    bottom: 18px;
+    margin: 0;
+    padding: 0;
+  }
+
+  .rp-mais {
+    width: auto;
+    height: 58px;
+    padding: 0 22px 0 18px;
+    gap: 8px;
+    font-size: 16px;
+    transition: padding 0.35s var(--ease-out), gap 0.35s var(--ease-out), background 0.3s;
+
+    svg { width: 24px; height: 24px; }
+
+    .rp-mais__rotulo { display: none; }
+    .rp-mais__curto { display: inline; max-width: 60px; transition: max-width 0.35s var(--ease-out), opacity 0.25s; }
+
+    &:hover,
+    &:focus-visible { width: auto; }
+
+    &--compacto {
+      padding: 0 17px;
+      gap: 0;
+
+      .rp-mais__curto { max-width: 0; opacity: 0; }
+    }
+  }
+
+  .rp-chat {
+    min-height: calc(100svh - 150px);
+    padding: 14px 14px 12px;
+    border-radius: 22px;
+
+    &__head { gap: 10px; }
+    &__titulo { font-size: 17px; }
+    &__corpo { padding: 14px 0; gap: 12px; }
+  }
+
+  .rp-voltar { width: 44px; padding: 0; justify-content: center; }
+  .rp-voltar__texto { display: none; }
+
+  .rp-bolha { max-width: 94%; padding: 11px 14px; font-size: 14px; border-radius: 18px 18px 18px 6px; }
+  .rp-bolha--eu { max-width: 86%; border-radius: 18px 18px 6px 18px; }
+  .rp-bolha__acoes { flex-direction: column; }
+  .rp-criar, .rp-ajustar { width: 100%; }
+
+  .rp-exemplos {
+    flex-wrap: nowrap;
+    margin: 0 -14px;
+    padding: 0 14px 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .rp-exemplo { flex: none; font-size: 12.5px; }
+  .rp-dica { bottom: 14px; font-size: 11.5px; }
+
+  .rp-geleia {
+    &--ambar { top: 260px; left: auto; right: -30px; width: 150px; height: 140px; }
+    &--azul { top: 480px; left: -40px; width: 140px; height: 140px; }
+    &--teal { top: 660px; right: 40px; width: 110px; height: 110px; }
+    &--rosa, &--violeta { display: none; }
+  }
+}
+
+/* ---------- animações ---------- */
+
+@keyframes rpEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rpEntraEsq {
+  from { opacity: 0; transform: translateX(-48px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rpEntraDir {
+  from { opacity: 0; transform: translateX(48px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rpBolha {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rpExcluirIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rpFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes rpSheetUp {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes rpModalIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rpGelatina {
+  0% { border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; }
+  50% { border-radius: 63% 37% 45% 55% / 55% 62% 38% 45%; }
+  100% { border-radius: 38% 62% 56% 44% / 63% 38% 62% 37%; }
+}
+@keyframes rpFlutua {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  33% { transform: translate(16px, -20px) rotate(8deg); }
+  66% { transform: translate(-12px, 10px) rotate(-5deg); }
+}
+@keyframes rpVento {
+  0% { opacity: 0; transform: translateX(10px); }
+  30% { opacity: 0.35; }
+  70% { opacity: 0.2; }
+  100% { opacity: 0; transform: translateX(-14px); }
+}
+@keyframes rpDica {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-geleia, .rp-vento span, .rp-header, .rp-entra-esq, .rp-entra-dir, .rp-card, .rp-data,
+  .rp-list > li, .rp-bolha, .rp-excluir, .rp-dica svg, .rp-panel, .rp-overlay,
+  .rp-tema svg, .rp-aviso, .rp-aviso__pulso, .rp-esqueleto__linha, .rp-girando,
+  .rp-palco > .rp-alerta {
+    animation: none;
+  }
+
+  .rp-saindo, .rp-mais, .rp-mais__rotulo, .rp-row, .rp-row::before, .rp-send, .rp-composer__box {
+    transition: none;
+  }
 }

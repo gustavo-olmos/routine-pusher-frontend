@@ -9,6 +9,8 @@ import { SIMULADOR_URL } from '../lembretes.config';
 export type EventoFunil =
   | 'agendador_aberto'
   | 'sugestao_usada'
+  | 'lembrete_interpretado'
+  | 'rascunho_descartado'
   | 'lembrete_criado_ia'
   | 'lembrete_criado_form'
   | 'lembrete_editado'
@@ -17,15 +19,17 @@ export type EventoFunil =
   | 'categoria_criada'
   | 'categoria_editada'
   | 'categoria_excluida'
-  | 'datas_confirmadas'
   | 'tema_alternado'
   | 'avisos_permissao'
   | 'convite_simulador_visto'
   | 'convite_simulador_dispensado'
+  | 'alca_rotafin_vista'
+  | 'alca_rotafin_tocada'
+  | 'alca_rotafin_fechada'
   | 'saida_simulador';
 
 /** De onde partiu o clique que levou ao simulador. */
-export type OrigemSaida = 'cabecalho' | 'convite_contextual' | 'rodape';
+export type OrigemSaida = 'artigo' | 'convite_contextual' | 'rodape';
 
 interface Registro {
   evento: EventoFunil;

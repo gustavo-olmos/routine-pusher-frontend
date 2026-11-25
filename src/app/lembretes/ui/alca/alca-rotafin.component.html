@@ -1,0 +1,32 @@
+@if (visivel()) {
+  <div
+    class="rp-alca"
+    [class.rp-alca--arrastando]="arraste() > 0"
+    [style.--arraste.px]="arraste()"
+    (animationend)="aoTerminar($event)"
+    (touchstart)="toqueInicio($event)"
+    (touchmove)="toqueMove($event)"
+    (touchend)="toqueFim()">
+    <button type="button" class="rp-alca__corpo" (click)="aoTocar()" aria-label="Conheça a RotaFin — ver no fim da página">
+      <span class="rp-alca__puxador" aria-hidden="true"></span>
+      <span class="rp-alca__linha">
+        <span class="rp-alca__marca" aria-hidden="true">RotaFin</span>
+        <span class="rp-alca__texto">
+          <span class="rp-alca__titulo">Conheça a <em>RotaFin</em>.</span>
+          <span class="rp-alca__sub">Um caminho mais claro para o que vem pela frente.</span>
+        </span>
+        <span class="rp-alca__cta">
+          conhecer
+          <svg class="rp-alca__seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M5 12h13M13 6.5l5.5 5.5L13 17.5"></path>
+          </svg>
+        </span>
+      </span>
+    </button>
+    <button type="button" class="rp-alca__x" (click)="fechar()" aria-label="fechar o anúncio da RotaFin" title="fechar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18"></path>
+      </svg>
+    </button>
+  </div>
+}
