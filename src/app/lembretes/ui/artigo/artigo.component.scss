@@ -1,7 +1,7 @@
 /* Página de revista: branca e com tinta preta nos dois temas. Os tokens que o
    painel de JSON herda do app são redefinidos aqui para o papel claro. */
 
-:host { display: block; }
+:host { display: block; position: relative; z-index: 1; }
 
 .rp-artigo {
   --tk-chave: #2f5fd0;
