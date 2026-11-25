@@ -1,27 +1,34 @@
-<div class="rp-backdrop" aria-hidden="true">
-  <span class="rp-blobs">
-    <span class="rp-blob rp-blob--blue"></span>
-    <span class="rp-blob rp-blob--amber"></span>
-    <span class="rp-blob rp-blob--teal"></span>
-    <span class="rp-blob rp-blob--violet"></span>
-  </span>
-  <span class="rp-grid"></span>
-</div>
+<div class="rp-backdrop" aria-hidden="true"></div>
 
-<div class="rp-page">
-  <div class="rp-shell">
+<!-- ======================= PRIMEIRA TELA: O APP ======================= -->
+<section class="rp-hero" [class.rp-hero--chat]="momento() === 2">
+  <!-- Formas coloridas soltas atrás do vidro: é o que o backdrop-filter dos
+       painéis desfoca. Ficam longe do título. -->
+  <div class="rp-geleias" aria-hidden="true">
+    <span class="rp-geleia rp-geleia--ambar"></span>
+    <span class="rp-geleia rp-geleia--azul"></span>
+    <span class="rp-geleia rp-geleia--teal"></span>
+    <span class="rp-geleia rp-geleia--rosa"></span>
+    <span class="rp-geleia rp-geleia--violeta"></span>
+  </div>
 
+  <div class="rp-palco">
+    <!-- O cabeçalho atravessa as duas colunas e não troca entre os momentos. -->
     <header class="rp-header">
-      <div class="rp-toprow">
-        <div class="rp-eyebrow">
-          <span class="rp-eyebrow__dot"></span>
-          <span>uma solução RotaFin</span>
-          <a
-            class="rp-eyebrow__link"
-            [href]="SIMULADOR_URL"
-            (click)="irParaSimulador('cabecalho')">simulador de financiamento →</a>
-        </div>
-
+      <div class="rp-titlerow">
+        <span class="rp-logo-wrap">
+          <span class="rp-vento" aria-hidden="true"><span></span><span></span><span></span></span>
+          <svg class="rp-logo" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <rect x="12.6" y="1.6" width="6.8" height="3.4" rx="1.2" fill="currentColor"></rect>
+            <circle cx="16" cy="19" r="11" class="rp-logo__face" stroke="currentColor" stroke-width="1.8"></circle>
+            <circle cx="16" cy="19" r="7.4" fill="none" class="rp-logo__ring" stroke-width="1"></circle>
+            <rect x="15.2" y="4.6" width="1.6" height="2.6" fill="currentColor"></rect>
+            <rect x="15.2" y="12" width="1.6" height="7.6" rx="0.8" fill="currentColor"></rect>
+            <rect x="16" y="18.2" width="6.4" height="1.6" rx="0.8" class="rp-logo__hand"></rect>
+            <circle cx="16" cy="19" r="1.6" fill="currentColor"></circle>
+          </svg>
+        </span>
+        <h1 class="rp-title">Routine Pusher</h1>
         <div class="rp-acoes-topo">
         @if (permissaoAviso() !== 'indisponivel') {
           <button
@@ -69,24 +76,9 @@
         </button>
         </div>
       </div>
-
-      <div class="rp-titlerow">
-        <svg class="rp-logo" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-          <rect x="12.6" y="1.6" width="6.8" height="3.4" rx="1.2" fill="currentColor"></rect>
-          <circle cx="16" cy="19" r="11" class="rp-logo__face" stroke="currentColor" stroke-width="1.8"></circle>
-          <circle cx="16" cy="19" r="7.4" fill="none" class="rp-logo__ring" stroke-width="1"></circle>
-          <rect x="15.2" y="4.6" width="1.6" height="2.6" fill="currentColor"></rect>
-          <rect x="15.2" y="12" width="1.6" height="7.6" rx="0.8" fill="currentColor"></rect>
-          <rect x="16" y="18.2" width="6.4" height="1.6" rx="0.8" class="rp-logo__hand"></rect>
-          <circle cx="16" cy="19" r="1.6" fill="currentColor"></circle>
-        </svg>
-        <h1 class="rp-title">Routine<br />Pusher</h1>
-        <p class="rp-subtitle">
-          Lembretes com recorrências que o <span class="rp-token">cron</span> não expressa.
-        </p>
-      </div>
-
-      <div class="rp-hairline"></div>
+      <p class="rp-subtitle">
+        Lembretes com recorrências que o <span class="rp-token">cron</span> não expressa.
+      </p>
     </header>
 
     @if (falha(); as f) {
@@ -101,165 +93,145 @@
       </div>
     }
 
-    <section class="rp-carousel">
-      <div class="rp-sectionhead">
-        <span class="rp-label">lembretes ativos</span>
-        <span class="rp-counter">{{ position() }}</span>
-      </div>
 
-      @if (carregando()) {
-        <div class="rp-viewport rp-viewport--estado">
-          <div class="rp-esqueleto">
-            <span class="rp-esqueleto__linha rp-esqueleto__linha--titulo"></span>
-            <span class="rp-esqueleto__linha"></span>
-            <span class="rp-esqueleto__linha rp-esqueleto__linha--curta"></span>
+    @if (momento() === 1) {
+      <!-- ============ MOMENTO 1: ver lembretes ============ -->
+      <div class="rp-esq rp-entra-esq" [class.rp-saindo]="saindo()">
+        @if (carregando()) {
+          <div class="rp-card rp-card--estado">
+            <div class="rp-esqueleto">
+              <span class="rp-esqueleto__linha rp-esqueleto__linha--titulo"></span>
+              <span class="rp-esqueleto__linha"></span>
+              <span class="rp-esqueleto__linha rp-esqueleto__linha--curta"></span>
+            </div>
           </div>
-        </div>
-      } @else if (vazio()) {
-        <div class="rp-viewport rp-viewport--estado">
-          <div class="rp-vazio">
+        } @else if (vazio()) {
+          <div class="rp-card rp-card--estado rp-vazio">
             <p class="rp-vazio__titulo">Nenhum lembrete ainda.</p>
             <p class="rp-vazio__texto">
               @if (semCategorias()) {
                 Crie uma categoria primeiro — todo lembrete precisa de uma.
               } @else {
-                Descreva um em português ali embaixo — ou toque num dos exemplos.
+                Toque em <strong>criar novo lembrete</strong> e descreva um em português.
               }
             </p>
           </div>
-        </div>
-      } @else {
-        <div class="rp-carousel__row">
-          <div class="rp-viewport">
-            <div class="rp-track" [style.transform]="trackShift()">
-              @for (card of cards(); track card.id) {
-                <!-- O card deixou de ser <button> para o selo de categoria poder
-                     ser clicável: <button> dentro de <button> é inválido. Quem
-                     abre o detalhe agora é o CTA do rodapé. -->
-                <div class="rp-card" [class.rp-card--feito]="card.concluido">
-                  <div class="rp-card__head">
-                    <div class="rp-card__titulo">
-                      <span class="rp-card__label">{{ card.label }}</span>
-                      <button
-                        type="button"
-                        class="rp-categoria"
-                        [style.--cor-categoria]="card.cor"
-                        (click)="abrirCategorias(card.id)"
-                        [attr.aria-label]="'categoria ' + card.categoria + ' — trocar categoria'"
-                        title="trocar a categoria deste lembrete">
-                        <span class="rp-categoria__ponto"></span>
-                        {{ card.categoria }}
-                      </button>
-                    </div>
-                    <span class="rp-card__meta">
-                      <span class="rp-mono rp-muted">{{ card.resumo }}</span>
-                    </span>
-                  </div>
-
-                  <div class="rp-card__foot">
-                    <div class="rp-timeline">
-                      <span class="rp-timeline__axis"></span>
-                      <span class="rp-timeline__cap rp-timeline__cap--start"></span>
-                      <span class="rp-timeline__cap rp-timeline__cap--end"></span>
-                      @for (t of card.ticks; track t.label) {
-                        <span class="rp-tick" [class.rp-tick--active]="t.active" [style.left]="t.left">
-                          <span class="rp-tick__dot"></span>
-                          <span class="rp-tick__stem"></span>
-                          <span class="rp-tick__label">{{ t.label }}</span>
-                        </span>
-                      }
-                    </div>
-
-                    <div class="rp-next">
-                      <span class="rp-mono rp-muted">próxima</span>
-                      <span class="rp-mono rp-next__value">{{ card.nextLine }}</span>
-                      <span class="rp-mono rp-muted-2">{{ card.spanNote }}</span>
-                    </div>
-
-                    <button type="button" class="rp-cta" (click)="abrirDetalhe(card.id)">
-                      {{ card.concluido
-                          ? 'ver detalhes deste lembrete'
-                          : 'ver as próximas ' + occurrenceCount() + ' execuções' }}
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-                        <path d="M5 12h13M13 6.5l5.5 5.5L13 17.5"></path>
-                      </svg>
-                    </button>
-                  </div>
+        } @else {
+          @for (alvo of cardAtual(); track alvo.uuid) {
+            <article class="rp-card" [class.rp-card--feito]="alvo.status === 'CONCLUIDO'">
+              <div class="rp-card__titulo">
+                <div class="rp-card__textos">
+                  <span class="rp-card__label">{{ alvo.titulo }}</span>
+                  <span class="rp-card__resumo rp-mono">{{ resumoSelecionado() }}</span>
                 </div>
-              }
-            </div>
-          </div>
-
-          <div class="rp-rail">
-            <button type="button" class="rp-rail__btn" (click)="step(-1)" aria-label="lembrete anterior">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 6l-6 6 6 6"></path>
-              </svg>
-            </button>
-            <div class="rp-dots">
-              @for (card of cards(); track card.id) {
                 <button
                   type="button"
-                  class="rp-dot"
-                  [class.rp-dot--active]="card.id === selectedId()"
-                  (click)="select(card.id)"
-                  [attr.aria-label]="'ir para ' + card.label"></button>
-              }
-            </div>
-            <button type="button" class="rp-rail__btn" (click)="step(1)" aria-label="próximo lembrete">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M10 6l6 6-6 6"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-      }
-    </section>
-
-    @if (!carregando()) {
-      <section class="rp-examples">
-        <div class="rp-sectionhead">
-          <span class="rp-label">{{ vazio() ? 'exemplos' : 'seus lembretes' }}</span>
-          <span class="rp-sectionhead__acoes">
-            <!-- O selo de um lembrete é a outra porta do painel, mas ela some
-                 quando não há lembrete — e é justo aí que o visitante pode
-                 precisar criar a primeira categoria. -->
-            <button
-              type="button"
-              class="rp-reset rp-reset--cats"
-              (click)="abrirCategorias()">categorias</button>
-            <button
-              type="button"
-              class="rp-reset rp-reset--form"
-              [disabled]="noLimite() || semCategorias()"
-              (click)="abrirFormulario()">+ pelo formulário</button>
-          </span>
-        </div>
-        <ul class="rp-list">
-          @if (vazio()) {
-            <!-- Sem dados, a lista vira o que era no design: exemplos. Clicar
-                 preenche a frase, que é o primeiro degrau do funil. -->
-            @for (s of SUGESTOES; track s) {
-              <li>
-                <!-- Sem categoria o compositor sai da tela; o exemplo encheria
-                     um campo invisível e o clique não faria nada. -->
-                <button
-                  type="button"
-                  class="rp-row"
-                  [disabled]="semCategorias()"
-                  (click)="usarSugestao(s)">
-                  <span class="rp-row__left">
-                    <span class="rp-row__dot"></span>
-                    <span class="rp-row__label">{{ s }}</span>
-                  </span>
-                  <span class="rp-badge rp-badge--square rp-badge--quiet">usar</span>
+                  class="rp-categoria"
+                  [style.--cor-categoria]="alvo.categoria.cor"
+                  (click)="abrirCategorias(alvo.uuid)"
+                  [attr.aria-label]="'categoria ' + alvo.categoria.nome + ' — trocar categoria'"
+                  title="trocar a categoria deste lembrete">
+                  <span class="rp-categoria__ponto"></span>
+                  {{ alvo.categoria.nome }}
                 </button>
-              </li>
-            }
-          } @else {
-            @for (card of cards(); track card.id) {
-              <!-- A linha é o container e o miolo é o botão: <button> dentro de
-                   <button> é inválido, e o ✓ precisa ser clicável por si. -->
+              </div>
+
+              @if (datas().length) {
+                <ol class="rp-datas" aria-label="próximas execuções">
+                  @for (d of datas(); track d.n) {
+                    <li class="rp-data" [class.rp-data--primeira]="d.first">
+                      <span class="rp-data__dia rp-mono">{{ d.dia }}</span>
+                      <span class="rp-data__detalhe">{{ d.detalhe }}</span>
+                      <span class="rp-data__gap rp-mono">{{ d.gap }}</span>
+                    </li>
+                  }
+                </ol>
+              } @else {
+                <p class="rp-card__sem-datas rp-mono">
+                  {{ alvo.status === 'CONCLUIDO'
+                      ? 'concluído — este lembrete não dispara mais'
+                      : 'o servidor não previu execuções para esta regra' }}
+                </p>
+              }
+
+              <div class="rp-card__acoes">
+                @if (confirmandoExclusao()) {
+                  <div class="rp-excluir" role="alertdialog" aria-label="confirmar exclusão">
+                    <span class="rp-excluir__texto">Excluir este lembrete?</span>
+                    <button type="button" class="rp-secondary rp-mono rp-excluir-nao" (click)="confirmandoExclusao.set(false)">cancelar</button>
+                    <button type="button" class="rp-excluir-sim" (click)="excluir()">excluir</button>
+                  </div>
+                } @else {
+                  <button
+                    type="button"
+                    class="rp-acao rp-acao--excluir"
+                    (click)="confirmandoExclusao.set(true)"
+                    aria-label="excluir lembrete"
+                    title="excluir">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M4 7h16"></path>
+                      <path d="M9.5 7V4.8c0-.4.3-.8.8-.8h3.4c.4 0 .8.4.8.8V7"></path>
+                      <path d="M6.5 7l.8 11.4c.1 1 .9 1.6 1.8 1.6h5.8c.9 0 1.7-.7 1.8-1.6L17.5 7"></path>
+                      <path d="M10.2 11v5M13.8 11v5"></path>
+                    </svg>
+                  </button>
+                  <span class="rp-card__espaco"></span>
+                  <button
+                    type="button"
+                    class="rp-acao rp-acao--editar"
+                    (click)="abrirEdicao()"
+                    aria-label="editar este lembrete"
+                    title="editar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"></path>
+                      <path d="M14.5 6.5l3 3"></path>
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="rp-acao rp-acao--concluir"
+                    [class.rp-acao--feito]="alvo.status === 'CONCLUIDO'"
+                    [disabled]="alvo.status === 'CONCLUIDO'"
+                    (click)="concluirLembrete(alvo.uuid)"
+                    [attr.aria-label]="alvo.status === 'CONCLUIDO'
+                      ? alvo.titulo + ' já está concluído'
+                      : 'marcar ' + alvo.titulo + ' como concluído'"
+                    [attr.title]="alvo.status === 'CONCLUIDO' ? 'já concluído' : 'concluí este'">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M5 12.5l4.5 4.5L19 7.5"></path>
+                    </svg>
+                  </button>
+                }
+              </div>
+            </article>
+          }
+        }
+
+        <div class="rp-mais-wrap">
+          <button
+            type="button"
+            class="rp-mais"
+            [class.rp-mais--compacto]="maisCompacto()"
+            (click)="irParaChat()"
+            aria-label="criar novo lembrete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+            <span class="rp-mais__rotulo">criar novo lembrete</span>
+            <span class="rp-mais__curto" aria-hidden="true">criar</span>
+          </button>
+        </div>
+      </div>
+
+      <aside class="rp-dir rp-painel-lista rp-entra-dir" [class.rp-saindo]="saindo()" aria-label="lembretes ativos">
+        <div class="rp-sectionhead">
+          <span class="rp-label">lembretes ativos</span>
+          <span class="rp-counter">{{ position() }}</span>
+        </div>
+        @if (!carregando() && !vazio()) {
+          <ul class="rp-list">
+            @for (card of linhas(); track card.id) {
+              <!-- Concluir mora no card; a linha só seleciona. -->
               <li class="rp-row" [class.rp-row--active]="card.id === selectedId()">
                 <button type="button" class="rp-row__main" (click)="select(card.id)">
                   <span class="rp-row__left">
@@ -277,128 +249,188 @@
                   </span>
                 </button>
 
-                <button
-                  type="button"
-                  class="rp-row__ok"
-                  [class.rp-row__ok--feito]="card.concluido"
-                  [disabled]="card.concluido"
-                  (click)="concluirLembrete(card.id)"
-                  [attr.aria-label]="card.concluido
-                    ? card.label + ' já está concluído'
-                    : 'marcar ' + card.label + ' como concluído'"
-                  [attr.title]="card.concluido ? 'já concluído' : 'concluí este'">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M5 12.5l4.5 4.5L19 7.5"></path>
-                  </svg>
-                </button>
               </li>
             }
-          }
-        </ul>
-      </section>
-    }
-
-    @if (convite(); as c) {
-      <section class="rp-convite">
-        <div class="rp-convite__texto">
-          <span class="rp-label">já que o assunto é dinheiro</span>
-          <p class="rp-convite__frase">
-            Anotar <strong>{{ c.titulo }}</strong> resolve a data. Ver quanto essa
-            parcela custa no total é outra conversa — o simulador faz a conta.
-          </p>
-        </div>
-        <div class="rp-convite__acoes">
-          <a
-            class="rp-primary rp-convite__cta"
-            [href]="SIMULADOR_URL"
-            (click)="irParaSimulador('convite_contextual')">simular financiamento</a>
-          <button type="button" class="rp-convite__x" (click)="dispensarConvite()">agora não</button>
-        </div>
-      </section>
-    }
-
-    <section class="rp-composer">
-      @if (semCategorias()) {
-        <!-- `categoriaId` é obrigatório ao criar, e a lista está vazia: o campo
-             de frase só levaria a um 404. Melhor mandar resolver a causa. -->
-        <div class="rp-composer__box rp-composer__box--travado">
-          <p class="rp-travado__titulo">Você não tem nenhuma categoria.</p>
-          <p class="rp-travado__texto">
-            Todo lembrete precisa de uma. Crie a primeira e o campo de frase volta.
-          </p>
-          <button type="button" class="rp-primary" (click)="abrirCategorias()">
-            criar categoria
+          </ul>
+        } @else if (!carregando()) {
+          <p class="rp-painel-lista__vazio">Os lembretes que você criar aparecem aqui.</p>
+        }
+      </aside>
+    } @else {
+      <!-- ============ MOMENTO 2: criar pelo chat ============ -->
+      <section class="rp-chat rp-examples rp-entra-esq" aria-label="novo lembrete">
+        <div class="rp-chat__head">
+          <button type="button" class="rp-voltar" (click)="voltarAosLembretes()" aria-label="voltar aos lembretes">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19 12H6M11 6.5L5.5 12l5.5 5.5"></path>
+            </svg>
+            <span class="rp-voltar__texto">voltar aos lembretes</span>
           </button>
-        </div>
-      } @else {
-      <div class="rp-composer__box">
-        <textarea
-          rows="3"
-          class="rp-composer__input"
-          [value]="draft()"
-          [attr.maxlength]="MAX_FRASE"
-          [disabled]="noLimite()"
-          (input)="draft.set($any($event.target).value)"
-          (keydown)="onKeydown($event)"
-          placeholder="descreva um lembrete em português…&#10;ex.: me lembra de regar as plantas 4 dias depois da última rega"></textarea>
-        <div class="rp-composer__actions">
-          <span class="rp-mono rp-muted-2 rp-composer__contador">
-            {{ noLimite() ? 'limite de ' + LIMITE_LEMBRETES + ' atingido' : restantes() + ' de ' + LIMITE_LEMBRETES + ' restantes' }}
+          <span class="rp-chat__titulo">Novo lembrete</span>
+          <span class="rp-sectionhead__acoes">
+            <button type="button" class="rp-reset rp-reset--cats" (click)="abrirCategorias()">categorias</button>
+            <button
+              type="button"
+              class="rp-reset rp-reset--form"
+              [disabled]="noLimite() || semCategorias()"
+              (click)="abrirFormulario()">formulário</button>
           </span>
-          <button
-            type="button"
-            class="rp-send"
-            [class.rp-send--ready]="!!draft().trim() && !noLimite()"
-            [class.rp-send--enviando]="enviando()"
-            [disabled]="enviando() || noLimite()"
-            (click)="enviarFrase()"
-            aria-label="enviar lembrete">
-            @if (enviando()) {
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="rp-girando">
-                <path d="M12 3a9 9 0 1 0 9 9"></path>
-              </svg>
-            } @else {
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M5 12h13"></path>
-                <path d="M12 6l6 6-6 6"></path>
-              </svg>
-            }
-          </button>
         </div>
+
+        <div class="rp-chat__corpo" aria-live="polite">
+          <div class="rp-bolha">
+            <span>
+              Escreva como falaria com alguém — <em>“me lembra de…”</em>. A IA transforma a frase em
+              um lembrete e a API devolve o JSON para você revisar antes de salvar.
+            </span>
+          </div>
+
+          @if (fraseEnviada() && conversaIniciada()) {
+            <div class="rp-bolha rp-bolha--eu"><span>{{ fraseEnviada() }}</span></div>
+          }
+
+          @if (enviando() && !rascunho() && !recemCriado()) {
+            <div class="rp-bolha rp-bolha--digitando" aria-label="interpretando a frase"><span></span><span></span><span></span></div>
+          }
+
+          @if (rascunho(); as r) {
+            <div class="rp-bolha rp-bolha--ia">
+              <span>
+                Entendi assim: <strong>{{ resumoRascunho() }}</strong>. Nada foi salvo ainda —
+                <span class="rp-so-computador">confira ao lado o JSON que a IA montou.</span>
+                <span class="rp-so-celular">confira o JSON que a IA montou.</span>
+              </span>
+              <div class="rp-so-celular">
+                <rp-painel-json [linhas]="painel().linhas" [versao]="versaoPainel()" [compacto]="true" />
+              </div>
+              <div class="rp-bolha__acoes">
+                <button type="button" class="rp-criar" [disabled]="enviando()" (click)="criarDoRascunho()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M5 12.5l4.5 4.5L19 7.5"></path>
+                  </svg>
+                  {{ enviando() ? 'criando…' : 'criar lembrete' }}
+                </button>
+                <button type="button" class="rp-ajustar" (click)="ajustarNoFormulario()">ajustar no formulário</button>
+              </div>
+            </div>
+          }
+
+          @if (recemCriado(); as c) {
+            <div class="rp-bolha rp-bolha--ok">
+              <span>
+                Lembrete criado.
+                <span class="rp-so-computador">Ao lado, a resposta da API.</span>
+                <span class="rp-so-celular">Resposta da API <span class="rp-selo-201 rp-mono">201</span></span>
+              </span>
+              <div class="rp-so-celular">
+                <rp-painel-json [linhas]="painel().linhas" [versao]="versaoPainel()" [compacto]="true" />
+              </div>
+              <button type="button" class="rp-ver" (click)="voltarAosLembretes()">
+                ver lembrete
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                  <path d="M5 12h13M13 6.5l5.5 5.5L13 17.5"></path>
+                </svg>
+              </button>
+            </div>
+          }
+        </div>
+
+        @if (!conversaIniciada() && !semCategorias() && !noLimite()) {
+          <!-- Sugestões só antes da primeira frase: depois elas disputam espaço com a conversa. -->
+          <div class="rp-exemplos" aria-label="exemplos de frase">
+            @for (s of SUGESTOES; track s) {
+              <button type="button" class="rp-exemplo" (click)="usarSugestao(s)">{{ s }}</button>
+            }
+          </div>
+        }
+
+        <div class="rp-composer">
+          @if (semCategorias()) {
+            <!-- `categoriaId` é obrigatório ao criar, e a lista está vazia: o campo
+                 de frase só levaria a um 404. Melhor mandar resolver a causa. -->
+            <div class="rp-composer__box rp-composer__box--travado">
+              <p class="rp-travado__titulo">Você não tem nenhuma categoria.</p>
+              <p class="rp-travado__texto">
+                Todo lembrete precisa de uma. Crie a primeira e o campo de frase volta.
+              </p>
+              <button type="button" class="rp-primary" (click)="abrirCategorias()">
+                criar categoria
+              </button>
+            </div>
+          } @else {
+          <div class="rp-composer__box">
+            <textarea
+              rows="2"
+              class="rp-composer__input"
+              [value]="draft()"
+              [attr.maxlength]="MAX_FRASE"
+              [disabled]="noLimite()"
+              (input)="draft.set($any($event.target).value)"
+              (keydown)="onKeydown($event)"
+              placeholder="descreva um lembrete em português…&#10;ex.: me lembra de regar as plantas 4 dias depois da última rega"></textarea>
+            <div class="rp-composer__actions">
+              <span class="rp-mono rp-muted-2 rp-composer__contador">
+                {{ noLimite() ? 'limite de ' + LIMITE_LEMBRETES + ' atingido' : restantes() + ' de ' + LIMITE_LEMBRETES + ' restantes' }}
+              </span>
+              <button
+                type="button"
+                class="rp-send"
+                [class.rp-send--ready]="!!draft().trim() && !noLimite()"
+                [class.rp-send--enviando]="enviando()"
+                [disabled]="enviando() || noLimite()"
+                (click)="enviarFrase()"
+                aria-label="enviar lembrete">
+                @if (enviando()) {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="rp-girando">
+                    <path d="M12 3a9 9 0 1 0 9 9"></path>
+                  </svg>
+                } @else {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h13"></path>
+                    <path d="M12 6l6 6-6 6"></path>
+                  </svg>
+                }
+              </button>
+            </div>
+          </div>
+          }
+        </div>
+        <p class="rp-persistencia rp-mono">
+          seus lembretes ficam neste navegador por {{ SESSAO_HORAS }}h sem acesso — depois a
+          sessão anônima expira e eles somem. as notificações só chegam com esta aba aberta.
+          @if (precisaInstalarNoIphone()) {
+            <!-- No iPhone a API de notificação só existe para site adicionado à Tela
+                 de Início; numa aba comum do Safari não há botão a oferecer. -->
+            <br />no iphone, use compartilhar › adicionar à tela de início para receber
+            o aviso do sistema.
+          }
+        </p>
+      </section>
+
+      <div class="rp-dir rp-painel-json rp-so-computador rp-entra-dir">
+        <rp-painel-json
+          [rotulo]="painel().rotulo"
+          [status]="painel().status"
+          [tom]="painel().tom"
+          [linhas]="painel().linhas"
+          [apagado]="painel().apagado"
+          [versao]="versaoPainel()" />
       </div>
-      }
-    </section>
-
-    <p class="rp-persistencia rp-mono">
-      seus lembretes ficam neste navegador por {{ SESSAO_HORAS }}h sem acesso — depois a
-      sessão anônima expira e eles somem. as notificações só chegam com esta aba aberta.
-      @if (precisaInstalarNoIphone()) {
-        <!-- No iPhone a API de notificação só existe para site adicionado à Tela
-             de Início; numa aba comum do Safari não há botão a oferecer. -->
-        <br />no iphone, use compartilhar › adicionar à tela de início para receber
-        o aviso do sistema.
-      }
-    </p>
-
-    <footer class="rp-footer">
-      <a
-        href="https://github.com/gustavo-olmos/routine-pusher-frontend"
-        target="_blank"
-        rel="noreferrer"
-        class="rp-footer__link">
-        <span class="rp-mono">github.com/gustavo-olmos/routine-pusher-frontend</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-          <path d="M7 17L17 7M9 7h8v8"></path>
-        </svg>
-      </a>
-      <a
-        class="rp-footer__link rp-footer__link--quiet"
-        [href]="SIMULADOR_URL"
-        (click)="irParaSimulador('rodape')">Ver também: Finance Simulator →</a>
-    </footer>
-
+    }
   </div>
-</div>
+
+  <a class="rp-dica" href="#rp-artigo" (click)="rolarPara('rp-artigo', $event)">
+    como funciona
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 5v13M6.5 13l5.5 5.5 5.5-5.5"></path>
+    </svg>
+  </a>
+</section>
+
+<!-- ======================= ABAIXO DA DOBRA: O ARTIGO ======================= -->
+<rp-artigo id="rp-artigo" [convite]="convite()" (saida)="irParaSimulador($event)" />
+
+<rp-alca-rotafin (tocar)="rolarPara('rp-rotafin')" />
 
 <!-- avisos do SSE: cada evento do stream é o título do lembrete que disparou -->
 @if (avisos().length) {
@@ -412,109 +444,6 @@
         </span>
       </button>
     }
-  </div>
-}
-
-@if (open() && selected(); as alvo) {
-  <div class="rp-overlay" [class.rp-overlay--sheet]="isMobile()" (click)="fecharDetalhe()">
-    <div
-      class="rp-panel"
-      [class.rp-panel--sheet]="isMobile()"
-      role="dialog"
-      aria-modal="true"
-      (click)="$event.stopPropagation()">
-      <div class="rp-panel__head">
-        <div class="rp-panel__title">
-          <span class="rp-label">
-            {{ alvo.status === 'CONCLUIDO'
-                ? 'lembrete concluído'
-                : 'próximas ' + occurrenceCount() + ' execuções' }}
-          </span>
-          <span class="rp-panel__name">{{ alvo.titulo }}</span>
-          <span class="rp-panel__sub">
-            <button
-              type="button"
-              class="rp-categoria"
-              [style.--cor-categoria]="alvo.categoria.cor"
-              (click)="abrirCategorias(alvo.uuid)"
-              title="trocar a categoria deste lembrete">
-              <span class="rp-categoria__ponto"></span>
-              {{ alvo.categoria.nome }}
-            </button>
-            <span class="rp-mono rp-muted">{{ detalheResumo() }}</span>
-          </span>
-        </div>
-        <button type="button" class="rp-close" (click)="fecharDetalhe()" aria-label="fechar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M6 6l12 12M18 6L6 18"></path>
-          </svg>
-        </button>
-      </div>
-
-      <ol class="rp-occurrences">
-        @for (occ of execucoes(); track occ.n; let i = $index) {
-          <li
-            class="rp-occurrence"
-            [class.rp-occurrence--first]="occ.first"
-            [style.animation-name]="animation()"
-            [style.animation-delay.ms]="i * 55">
-            <span class="rp-occurrence__left rp-mono">
-              <span class="rp-occurrence__n">{{ occ.n }}</span>
-              <span class="rp-occurrence__date">{{ occ.date }}</span>
-              <span class="rp-occurrence__weekday">{{ occ.weekday }}</span>
-            </span>
-            <span class="rp-gap rp-mono" [class.rp-gap--first]="occ.first">{{ occ.gap }}</span>
-          </li>
-        } @empty {
-          <li class="rp-occurrence rp-occurrence--vazia">
-            <!-- Concluído vem com proximasExecucoes vazio. Dizer "não previu
-                 execuções para esta regra" acusaria a recorrência de um defeito
-                 que ela não tem. -->
-            <span class="rp-mono rp-muted">
-              {{ alvo.status === 'CONCLUIDO'
-                  ? 'concluído — este lembrete não dispara mais'
-                  : 'o servidor não previu execuções para esta regra' }}
-            </span>
-          </li>
-        }
-      </ol>
-
-      <div class="rp-panel__actions">
-        <button
-          type="button"
-          class="rp-acao rp-acao--editar"
-          (click)="abrirEdicao()"
-          aria-label="editar este lembrete"
-          title="editar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"></path>
-            <path d="M14.5 6.5l3 3"></path>
-          </svg>
-        </button>
-        @if (execucoes().length) {
-          <button
-            type="button"
-            class="rp-acao rp-acao--confirmar"
-            (click)="confirmarDatas()"
-            aria-label="confirmar: são estas as datas que eu queria"
-            title="são estas as datas">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M5 12.5l4.5 4.5L19 7.5"></path>
-            </svg>
-          </button>
-        }
-        <button
-          type="button"
-          class="rp-acao rp-acao--excluir"
-          (click)="excluir()"
-          aria-label="excluir lembrete"
-          title="excluir">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-            <path d="M7 7l10 10M17 7L7 17"></path>
-          </svg>
-        </button>
-      </div>
-    </div>
   </div>
 }
 

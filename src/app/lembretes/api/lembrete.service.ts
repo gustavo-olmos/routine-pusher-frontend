@@ -9,6 +9,7 @@ import {
   CategoriaEntrada,
   DetalhesEntrada,
   FraseEntrada,
+  Interpretacao,
   Lembrete,
   LembreteEntrada,
   Sessao,
@@ -94,17 +95,22 @@ export class LembreteService {
     return this.http.get<Lembrete[]>(`${API_V1}/lembrete`, { params: ordenacao('uuid') });
   }
 
+  /** 201 com `Location`; o corpo é o lembrete completo, com as próximas execuções. */
   criar(entrada: LembreteEntrada): Observable<Lembrete> {
     return this.http.post<Lembrete>(`${API_V1}/lembrete`, entrada);
   }
 
   /**
-   * Criação por linguagem natural. `agora` vai sempre preenchido: é o relógio de
-   * quem pede que resolve "amanhã às 9h" — sem ele vale o fuso do servidor.
+   * Interpreta uma frase **sem salvar**: devolve o rascunho que a IA montou e a
+   * prévia das próximas execuções. Consome uma chamada da cota de IA; confirmar
+   * (`criar` com `rascunho.lembrete`) não consome.
+   *
+   * `agora` vai sempre preenchido: é o relógio de quem pede que resolve "amanhã
+   * às 9h" — sem ele vale o fuso do servidor.
    */
-  criarPorFrase(frase: string): Observable<Lembrete> {
+  interpretar(frase: string): Observable<Interpretacao> {
     const corpo: FraseEntrada = { frase, agora: agoraLocalIso() };
-    return this.http.post<Lembrete>(`${API_V1}/chat/lembrete`, corpo);
+    return this.http.post<Interpretacao>(`${API_V1}/chat/interpretacao`, corpo);
   }
 
   /**

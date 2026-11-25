@@ -1,9 +1,14 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   HostListener,
+  OnDestroy,
+  Injector,
   OnInit,
+  afterNextRender,
   computed,
+  effect,
   inject,
   input,
   signal,
@@ -27,19 +32,20 @@ import {
   Unidade,
   mudouAgendamento,
   paraDetalhes,
+  entradaParaFormulario,
   paraEntrada,
   paraFormulario,
 } from '../dominio/formulario';
 import {
-  dataCurta,
   diaMes,
   diaSemanaCurto,
   diaSemanaLongo,
-  diffDias,
   faltaPara,
+  hora,
   intervaloEntre,
   paraDatas,
 } from '../dominio/datas';
+import { LinhaJson, linhasJson } from '../dominio/json-colorido';
 import { LembretesStore } from '../estado/lembretes.store';
 import { FunilService, OrigemSaida } from '../funil/funil.service';
 import {
@@ -55,37 +61,32 @@ import {
   SUGESTOES,
 } from '../lembretes.config';
 import { Tema, lerTema, oposto, salvarTema } from './tema';
+import { AlcaRotafinComponent } from './alca/alca-rotafin.component';
+import { ArtigoComponent } from './artigo/artigo.component';
+import { EXEMPLO_RASCUNHO } from './artigo/exemplos';
+import { PainelJsonComponent, TomPainel } from './painel-json/painel-json.component';
 
-interface Marca {
-  left: string;
-  active: boolean;
-  label: string;
-}
-
-interface CardVm {
+/** Uma linha da lista de lembretes ativos. */
+interface LinhaVm {
   id: string;
   label: string;
   cron: string;
   noCron: boolean;
-  resumo: string;
   cor: string;
-  categoria: string;
   concluido: boolean;
-  nextLine: string;
-  spanNote: string;
-  ticks: Marca[];
 }
 
-interface ExecucaoVm {
+/** Uma das próximas execuções, como ladrilho no card do lembrete. */
+interface DataVm {
   n: string;
-  date: string;
-  weekday: string;
+  dia: string;
+  detalhe: string;
   gap: string;
   first: boolean;
 }
 
-/** Gap entre os cards do carrossel — precisa casar com o `gap` do `.rp-track`. */
-const GAP_CARDS = 24;
+/** Duração da saída do momento 1 antes do chat entrar — casa com o SCSS. */
+const SAIDA_MS = 420;
 
 const dois = (n: number) => String(n).padStart(2, '0');
 
@@ -94,12 +95,15 @@ const dois = (n: number) => String(n).padStart(2, '0');
   standalone: true,
   templateUrl: './routine-pusher.component.html',
   styleUrl: './routine-pusher.component.scss',
+  imports: [PainelJsonComponent, AlcaRotafinComponent, ArtigoComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [NotificacoesService, AlertaService],
   host: { '[class.rp-dark]': 'temaAtivo() === "dark"' },
 })
-export class RoutinePusherComponent implements OnInit {
+export class RoutinePusherComponent implements OnInit, OnDestroy {
   private readonly store = inject(LembretesStore);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
   private readonly funil = inject(FunilService);
   private readonly notificacoes = inject(NotificacoesService);
   private readonly alerta = inject(AlertaService);
@@ -125,6 +129,9 @@ export class RoutinePusherComponent implements OnInit {
   protected readonly enviando = this.store.enviando;
   protected readonly falha = this.store.falha;
   protected readonly convite = this.store.convite;
+  protected readonly rascunho = this.store.rascunho;
+  protected readonly recemCriado = this.store.recemCriado;
+  protected readonly fraseEnviada = this.store.fraseDoRascunho;
   protected readonly vazio = this.store.vazio;
   protected readonly noLimite = this.store.noLimite;
   protected readonly restantes = this.store.restantes;
@@ -145,7 +152,36 @@ export class RoutinePusherComponent implements OnInit {
 
   protected readonly selectedId = signal<string | null>(null);
   protected readonly draft = signal('');
-  protected readonly open = signal(false);
+
+  /**
+   * A tela tem dois momentos. 1: ver lembretes (card + lista). 2: criar pelo
+   * chat (conversa + JSON). `saindo` segura o momento 1 na tela enquanto ele
+   * desliza para fora, antes de o chat entrar.
+   */
+  protected readonly momento = signal<1 | 2>(1);
+  protected readonly saindo = signal(false);
+  /** A lixeira do card pede confirmação: excluir não tem volta. */
+  protected readonly confirmandoExclusao = signal(false);
+  /** No celular, a pílula "+ criar" encolhe para o círculo depois de rolar. */
+  protected readonly maisCompacto = signal(false);
+  private timerSaida: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Cada mensagem nova na conversa (rascunho, criação, "digitando") rola o
+   * chat até o fim — senão a resposta da IA nasce escondida atrás do campo.
+   */
+  private readonly rolarConversa = effect(() => {
+    this.rascunho();
+    this.recemCriado();
+    this.enviando();
+    afterNextRender(
+      () => {
+        const corpo = this.host.nativeElement.querySelector('.rp-chat__corpo');
+        corpo?.scrollTo?.({ top: corpo.scrollHeight, behavior: prefereMenosMovimento() ? 'auto' : 'smooth' });
+      },
+      { injector: this.injector },
+    );
+  });
   protected readonly formAberto = signal(false);
   /** uuid em edição, ou null quando o formulário está criando. */
   protected readonly editandoId = signal<string | null>(null);
@@ -168,8 +204,6 @@ export class RoutinePusherComponent implements OnInit {
   protected readonly isMobile = signal(
     typeof window !== 'undefined' ? window.innerWidth < 640 : false,
   );
-  /** Alterna o nome da animação para reexecutá-la a cada recálculo. */
-  protected readonly tick = signal(0);
 
   // ---- formulário ----------------------------------------------------------
   protected readonly fTitulo = signal('');
@@ -194,79 +228,100 @@ export class RoutinePusherComponent implements OnInit {
     () => this.lembretes()[this.index()] ?? null,
   );
 
-  /**
-   * O deslocamento é horizontal e em porcentagem, não em pixels.
-   *
-   * Porcentagem em `transform` resolve contra a largura do próprio elemento, e
-   * a trilha tem exatamente a largura do viewport — que é a largura de um card.
-   * Assim o passo acompanha a tela sem constante mágica: a versão vertical
-   * dependia de um `364` que era a altura fixa do card mais o gap, e qualquer
-   * mudança no SCSS a desalinhava em silêncio.
-   */
-  protected readonly trackShift = computed(
-    () => `translateX(calc(${this.index()} * (-100% - ${GAP_CARDS}px)))`,
-  );
-
   protected readonly position = computed(() => {
     const total = this.lembretes().length;
     return total ? `${dois(this.index() + 1)} / ${dois(total)}` : '00 / 00';
   });
 
-  protected readonly cards = computed<CardVm[]>(() => {
-    const limite = this.occurrenceCount();
-    const agora = new Date();
-
-    return this.lembretes().map(l => {
-      const datas = paraDatas(l.proximasExecucoes).slice(0, limite);
-      const temDatas = datas.length > 0;
+  protected readonly linhas = computed<LinhaVm[]>(() =>
+    this.lembretes().map(l => {
       const especificadas = l.notificacao?.datasEspecificadas?.length ?? 0;
       const cron = cronEquivalente(l.recorrencia, l.notificacao?.horario, especificadas > 0);
-
       return {
         id: l.uuid,
         label: l.titulo,
         cron,
         noCron: cron === SEM_CRON,
-        resumo: resumoRecorrencia(l.recorrencia, l.notificacao?.horario, especificadas),
         cor: l.categoria?.cor ?? 'currentColor',
-        categoria: l.categoria?.nome ?? '',
         concluido: l.status === 'CONCLUIDO',
-        // Concluído passou a vir com proximasExecucoes vazio; a lista vazia já é
-        // a verdade, mas o motivo dela muda o texto.
-        nextLine: temDatas
-          ? `${dataCurta(datas[0])} · ${diaSemanaCurto(datas[0])}`
-          : l.status === 'CONCLUIDO'
-            ? 'concluído — não dispara mais'
-            : 'sem data prevista',
-        spanNote: temDatas ? `· janela de ${diffDias(datas[datas.length - 1], agora)} dias` : '',
-        ticks: this.montarMarcas(datas),
       };
-    });
+    }),
+  );
+
+  /** O card do momento 1 em lista de um item: trocar de lembrete renasce o card e anima. */
+  protected readonly cardAtual = computed(() => {
+    const alvo = this.selected();
+    return alvo ? [alvo] : [];
   });
 
-  protected readonly execucoes = computed<ExecucaoVm[]>(() => {
+  protected readonly datas = computed<DataVm[]>(() => {
     const alvo = this.selected();
     if (!alvo) return [];
     const agora = new Date();
-    const datas = paraDatas(alvo.proximasExecucoes).slice(0, this.occurrenceCount());
+    const lista = paraDatas(alvo.proximasExecucoes).slice(0, this.occurrenceCount());
+    // Série de minutos ou horas repete o dia: aí a hora é o que diferencia.
+    const mesmoDia = lista.length > 1 && diaMes(lista[0]) === diaMes(lista[1]);
 
-    return datas.map((d, i) => ({
+    return lista.map((d, i) => ({
       n: dois(i + 1),
-      date: dataCurta(d),
-      weekday: diaSemanaLongo(d),
-      gap: i === 0 ? faltaPara(d, agora) : intervaloEntre(datas[i - 1], d),
+      dia: diaMes(d),
+      detalhe: mesmoDia ? `${diaSemanaCurto(d)} · ${hora(d)}` : diaSemanaLongo(d),
+      gap: i === 0 ? faltaPara(d, agora) : intervaloEntre(lista[i - 1], d),
       first: i === 0,
     }));
   });
 
-  protected readonly detalheResumo = computed(() => {
+  protected readonly resumoSelecionado = computed(() => {
     const alvo = this.selected();
     if (!alvo) return '';
     const especificadas = alvo.notificacao?.datasEspecificadas?.length ?? 0;
     return resumoRecorrencia(alvo.recorrencia, alvo.notificacao?.horario, especificadas);
   });
 
+  // ---- momento 2: chat e JSON ----------------------------------------------
+
+  /** Como a IA entendeu a frase, em português, para a bolha de resposta. */
+  protected readonly resumoRascunho = computed(() => {
+    const r = this.rascunho()?.lembrete;
+    if (!r) return '';
+    const especificadas = r.notificacao?.datasEspecificadas?.length ?? 0;
+    return resumoRecorrencia(r.recorrencia, r.notificacao?.horario, especificadas);
+  });
+
+  /** A conversa já começou: as sugestões só aparecem antes da primeira frase. */
+  protected readonly conversaIniciada = computed(
+    () => !!this.rascunho() || !!this.recemCriado() || (this.enviando() && !!this.fraseEnviada()),
+  );
+
+  private readonly esqueleto = linhasJson({ lembrete: EXEMPLO_RASCUNHO, proximasExecucoes: [] });
+
   /**
+   * O painel do JSON tem três estados: o esqueleto esperando a frase, o
+   * rascunho que a IA montou (nada salvo) e a resposta do 201 depois de criar.
+   */
+  protected readonly painel = computed<{
+    rotulo: string;
+    status: string;
+    tom: TomPainel;
+    linhas: LinhaJson[];
+    apagado: boolean;
+  }>(() => {
+    const criado = this.recemCriado();
+    if (criado)
+      return { rotulo: 'resposta da API', status: '201 Created', tom: 'criado', linhas: linhasJson(criado), apagado: false };
+    const rascunho = this.rascunho();
+    if (rascunho)
+      return { rotulo: 'o que a IA entendeu', status: 'rascunho · não salvo', tom: 'rascunho', linhas: linhasJson(rascunho), apagado: false };
+    return { rotulo: 'o que a IA entendeu', status: 'aguardando frase', tom: 'neutro', linhas: this.esqueleto, apagado: true };
+  });
+
+  /** Muda a cada resposta nova, para as linhas do JSON renascerem animadas. */
+  protected readonly versaoPainel = computed(() =>
+    this.recemCriado() ? 2 : this.rascunho() ? 1 : 0,
+  );
+
+  /**
+   * A edição vai reagendar?  /**
    * A edição vai reagendar? Reativo, para o aviso aparecer enquanto o usuário
    * mexe, e não só depois de salvar.
    */
@@ -305,8 +360,6 @@ export class RoutinePusherComponent implements OnInit {
         return 'avisar no navegador quando um lembrete disparar';
     }
   });
-
-  protected readonly animation = computed(() => (this.tick() % 2 === 0 ? 'rpRiseA' : 'rpRiseB'));
 
   /** Em 400 a mensagem raiz é genérica; os campos inválidos dizem mais. */
   protected readonly mensagemFalha = computed(() => {
@@ -425,44 +478,73 @@ Detalhes...") e é um defeito conhecido do backend. Mostrar
     this.funil.registrar('avisos_permissao', { resultado });
   }
 
-  // ---- carrossel -----------------------------------------------------------
+  // ---- momento 1: seleção ---------------------------------------------------
 
   protected select(id: string): void {
     this.selectedId.set(id);
-    this.tick.update(t => t + 1);
+    this.confirmandoExclusao.set(false);
   }
 
-  protected step(delta: number): void {
-    const lista = this.lembretes();
-    if (!lista.length) return;
-    const proximo = (this.index() + delta + lista.length) % lista.length;
-    this.select(lista[proximo].uuid);
+  // ---- troca de momento ----------------------------------------------------
+
+  /**
+   * O "+": o card e a lista saem para a direita e só então o chat entra. Com
+   * movimento reduzido, troca na hora.
+   */
+  protected irParaChat(): void {
+    if (this.momento() === 2 || this.saindo()) return;
+    this.confirmandoExclusao.set(false);
+    if (prefereMenosMovimento()) {
+      this.momento.set(2);
+      return;
+    }
+    this.saindo.set(true);
+    this.timerSaida = setTimeout(() => {
+      this.saindo.set(false);
+      this.momento.set(2);
+      this.timerSaida = null;
+    }, SAIDA_MS);
   }
 
-  protected abrirDetalhe(id: string): void {
-    this.selectedId.set(id);
-    this.open.set(true);
-    this.tick.update(t => t + 1);
+  /**
+   * Volta aos lembretes. Se um lembrete acabou de nascer, ele volta
+   * selecionado; um rascunho não confirmado é descartado — nada foi salvo.
+   */
+  protected voltarAosLembretes(): void {
+    const criado = this.recemCriado();
+    this.store.descartarRascunho();
+    this.store.limparFalha();
+    this.draft.set('');
+    if (criado) this.select(criado.uuid);
+    this.momento.set(1);
   }
 
-  protected fecharDetalhe(): void {
-    this.open.set(false);
-  }
-
-  // ---- criação por frase (o caminho principal) -----------------------------
+  // ---- criação por frase: interpretar, revisar, criar ----------------------
 
   protected async enviarFrase(): Promise<void> {
     const frase = this.draft().trim();
     if (!frase || this.enviando() || this.noLimite()) return;
 
-    const novo = await this.store.criarPorFrase(frase);
-    if (!novo) return;
+    this.store.fraseDoRascunho.set(frase);
+    const rascunho = await this.store.interpretar(frase);
+    if (rascunho) this.draft.set('');
+  }
 
-    this.draft.set('');
-    this.select(novo.uuid);
-    // Abre o detalhe na hora: ver a frase virar datas concretas é o momento
-    // que prende o visitante — esconder isso atrás de um clique desperdiça.
-    this.open.set(true);
+  /** Confirma o rascunho: o mesmo JSON vai para o POST /lembrete. */
+  protected async criarDoRascunho(): Promise<void> {
+    const novo = await this.store.confirmarRascunho();
+    if (novo) this.select(novo.uuid);
+  }
+
+  /** Abre o formulário preenchido com o rascunho, para ajustar antes de criar. */
+  protected ajustarNoFormulario(): void {
+    const rascunho = this.rascunho();
+    if (!rascunho) return;
+    this.store.limparFalha();
+    this.editandoId.set(null);
+    this.aplicarEstado(entradaParaFormulario(rascunho.lembrete));
+    this.estadoOriginal.set(null);
+    this.formAberto.set(true);
   }
 
   protected usarSugestao(frase: string): void {
@@ -477,33 +559,28 @@ Detalhes...") e é um defeito conhecido do backend. Mostrar
     }
   }
 
+  /** A alça e a dica levam ao artigo; a alça vai direto ao anúncio no fim dele. */
+  protected rolarPara(id: 'rp-artigo' | 'rp-rotafin', evento?: Event): void {
+    evento?.preventDefault();
+    const alvo = this.host.nativeElement.querySelector(`#${id}`);
+    alvo?.scrollIntoView({ behavior: prefereMenosMovimento() ? 'auto' : 'smooth', block: 'start' });
+  }
+
   // ---- ações sobre um lembrete --------------------------------------------
 
   /**
-   * O ✓ é aceite das datas, não conclusão do lembrete: o visitante está dizendo
-   * "sim, era isso que eu queria". Não chama a API — só fecha. Vale como métrica
-   * porque é o sinal mais direto de que a leitura da frase pela IA acertou.
+   * O ✓ do card conclui o lembrete. A revisão das datas, que antes ele fazia,
+   * passou para o rascunho do chat — lá é que a pessoa confere antes de salvar.
    */
-  protected confirmarDatas(): void {
-    const alvo = this.selected();
-    this.funil.registrar('datas_confirmadas', {
-      titulo: alvo?.titulo,
-      execucoes: alvo?.proximasExecucoes?.length ?? 0,
-    });
-    this.open.set(false);
-  }
-
-  /** Concluir mora na lista, não no detalhe: o painel é para inspecionar datas. */
   protected async concluirLembrete(id: string): Promise<void> {
     await this.store.concluir(id);
-    this.tick.update(t => t + 1);
   }
 
   protected async excluir(): Promise<void> {
     const alvo = this.selected();
     if (!alvo) return;
     await this.store.excluir(alvo.uuid);
-    this.open.set(false);
+    this.confirmandoExclusao.set(false);
     this.selecionarPrimeiro();
   }
 
@@ -519,7 +596,7 @@ Detalhes...") e é um defeito conhecido do backend. Mostrar
     this.formAberto.set(true);
   }
 
-  /** Abre o mesmo formulário preenchido com o lembrete aberto no detalhe. */
+  /** Abre o mesmo formulário preenchido com o lembrete do card. */
   protected abrirEdicao(): void {
     const alvo = this.selected();
     if (!alvo) return;
@@ -528,7 +605,6 @@ Detalhes...") e é um defeito conhecido do backend. Mostrar
     const original = paraFormulario(alvo);
     this.aplicarEstado(original);
     this.estadoOriginal.set(original);
-    this.open.set(false);
     this.formAberto.set(true);
   }
 
@@ -567,6 +643,12 @@ Detalhes...") e é um defeito conhecido do backend. Mostrar
     if (!salvo) return;
     this.fecharFormulario();
     this.select(salvo.uuid);
+    // Criado a partir do rascunho do chat ("ajustar no formulário"): o
+    // rascunho cumpriu o papel e a tela volta aos lembretes.
+    if (!emEdicao && this.momento() === 2) {
+      this.store.descartarRascunho();
+      this.momento.set(1);
+    }
   }
 
   private estadoAtual(): EstadoFormulario {
@@ -739,31 +821,30 @@ Detalhes...") e é um defeito conhecido do backend. Mostrar
     this.isMobile.set(window.innerWidth < 640);
   }
 
+  @HostListener('window:scroll')
+  protected onScroll(): void {
+    this.maisCompacto.set(window.scrollY > 40);
+  }
+
   @HostListener('document:keydown.escape')
   protected onEscape(): void {
     if (this.catEditorAberto()) this.fecharEditorCategoria();
     else if (this.categoriasAberto()) this.fecharCategorias();
     else if (this.formAberto()) this.fecharFormulario();
-    else this.open.set(false);
+    else if (this.confirmandoExclusao()) this.confirmandoExclusao.set(false);
+  }
+
+  ngOnDestroy(): void {
+    if (this.timerSaida) clearTimeout(this.timerSaida);
   }
 
   private selecionarPrimeiro(): void {
     this.selectedId.set(this.lembretes()[0]?.uuid ?? null);
   }
 
-  private montarMarcas(datas: Date[]): Marca[] {
-    if (!datas.length) return [];
-    const inicio = datas[0].getTime();
-    const janela = Math.max(1, datas[datas.length - 1].getTime() - inicio);
-    let anterior = -100;
 
-    return datas.map((d, i) => {
-      // Proporcional ao intervalo real, mas sem deixar dois rótulos colarem:
-      // em séries de minutos as datas quase coincidem no eixo.
-      let pct = datas.length === 1 ? 50 : 4 + ((d.getTime() - inicio) / janela) * 92;
-      if (pct - anterior < 15) pct = anterior + 15;
-      anterior = pct;
-      return { left: `${Math.min(97, pct).toFixed(2)}%`, active: i === 0, label: diaMes(d) };
-    });
-  }
+}
+
+function prefereMenosMovimento(): boolean {
+  return typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }

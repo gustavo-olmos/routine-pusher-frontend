@@ -7,6 +7,7 @@ import {
   Categoria,
   CategoriaEntrada,
   DetalhesEntrada,
+  Interpretacao,
   Lembrete,
   LembreteEntrada,
   Sessao,
@@ -41,6 +42,17 @@ export class LembretesStore {
   readonly enviando = signal(false);
   readonly falha = signal<Falha | null>(null);
   readonly convite = signal<Convite | null>(null);
+
+  /**
+   * O que a IA entendeu da última frase, ainda **não salvo**. Vive só aqui, em
+   * memória: o chat é descartável por decisão de produto — sem histórico de
+   * conversa e sem editar lembrete pelo chat.
+   */
+  readonly rascunho = signal<Interpretacao | null>(null);
+  /** A frase que gerou o rascunho, para o convite e para a métrica. */
+  readonly fraseDoRascunho = signal('');
+  /** O lembrete que acabou de nascer da confirmação, para a tela mostrar o 201. */
+  readonly recemCriado = signal<Lembrete | null>(null);
 
   /**
    * Contagem local de chamadas de IA. É só uma dica para a interface avisar
@@ -102,19 +114,62 @@ export class LembretesStore {
     }
   }
 
-  /** O caminho principal: uma frase vira lembrete estruturado. */
-  async criarPorFrase(frase: string): Promise<Lembrete | null> {
-    return this.enviar(
-      () => this.lembreteApi.criarPorFrase(frase),
-      novo => {
-        this.iaUsada.update(n => n + 1);
+  /**
+   * Primeiro passo do caminho principal: a frase vira rascunho, sem salvar. A
+   * pessoa revisa o JSON e só então confirma — um lembrete mal interpretado não
+   * chega a existir nem gasta vaga da sessão.
+   */
+  async interpretar(frase: string): Promise<Interpretacao | null> {
+    if (this.enviando()) return null;
+    this.enviando.set(true);
+    this.falha.set(null);
+    this.recemCriado.set(null);
+    try {
+      const rascunho = await firstValueFrom(this.lembreteApi.interpretar(frase));
+      this.iaUsada.update(n => n + 1);
+      this.rascunho.set(rascunho);
+      this.fraseDoRascunho.set(frase);
+      this.funil.registrar('lembrete_interpretado', { caracteres: frase.length });
+      return rascunho;
+    } catch (erro) {
+      this.falha.set(normalizarFalha(erro));
+      return null;
+    } finally {
+      this.enviando.set(false);
+    }
+  }
+
+  /**
+   * Segundo passo: reenvia `rascunho.lembrete` ao `POST /lembrete` comum. Não
+   * consome cota de IA — a IA já trabalhou na interpretação.
+   */
+  async confirmarRascunho(): Promise<Lembrete | null> {
+    const atual = this.rascunho();
+    if (!atual) return null;
+    const frase = this.fraseDoRascunho();
+    const novo = await this.enviar(
+      () => this.lembreteApi.criar(atual.lembrete),
+      criado => {
         this.funil.registrar('lembrete_criado_ia', {
-          categoria: novo.categoria?.nome,
+          categoria: criado.categoria?.nome,
           caracteres: frase.length,
         });
-        this.avaliarConvite(novo, frase);
+        this.avaliarConvite(criado, frase);
       },
     );
+    if (novo) {
+      this.rascunho.set(null);
+      this.recemCriado.set(novo);
+    }
+    return novo;
+  }
+
+  /** Sair do chat sem confirmar joga o rascunho fora — nada foi salvo mesmo. */
+  descartarRascunho(): void {
+    if (this.rascunho()) this.funil.registrar('rascunho_descartado');
+    this.rascunho.set(null);
+    this.fraseDoRascunho.set('');
+    this.recemCriado.set(null);
   }
 
   async criarPorFormulario(entrada: LembreteEntrada): Promise<Lembrete | null> {

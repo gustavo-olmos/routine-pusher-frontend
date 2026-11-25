@@ -1,0 +1,329 @@
+/* Página de revista: branca e com tinta preta nos dois temas. Os tokens que o
+   painel de JSON herda do app são redefinidos aqui para o papel claro. */
+
+:host { display: block; }
+
+.rp-artigo {
+  --tk-chave: #2f5fd0;
+  --tk-texto: #2f8a57;
+  --tk-numero: #9c36b5;
+  --tk-literal: #8a8983;
+  --tk-pont: #6b6a65;
+  --tk-vazio: #b4b2a9;
+  --hair: #dddddd;
+  --code-bg: transparent;
+
+  padding: 136px 64px 72px;
+  background: #ffffff;
+  color: #111111;
+  font-family: 'Newsreader', Georgia, serif;
+
+  > * { max-width: 1120px; margin-left: auto; margin-right: auto; }
+
+  p { margin: 0; }
+
+  &__chapeu {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #555555;
+  }
+
+  &__fio { width: 48px; height: 1px; background: #111111; }
+
+  &__titulo {
+    margin: 36px 0 0;
+    font-weight: 300;
+    font-size: 112px;
+    line-height: 0.98;
+    letter-spacing: -3.5px;
+
+    em { font-weight: 300; }
+  }
+
+  &__linha-fina {
+    margin-top: 36px !important;
+    max-width: 760px;
+    font-size: 30px;
+    line-height: 1.32;
+    font-weight: 300;
+    font-style: italic;
+    color: #333333;
+  }
+
+  &__assinatura {
+    margin-top: 40px;
+    padding: 18px 0;
+    border-top: 1px solid #111111;
+    border-bottom: 1px solid #dddddd;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 28px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: #555555;
+  }
+
+  &__corpo {
+    max-width: 680px;
+    margin-top: 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    font-size: 21px;
+    line-height: 1.68;
+    color: #1a1a1a;
+
+    h3 {
+      margin: 16px 0 0;
+      font-weight: 400;
+      font-size: 34px;
+      line-height: 1.2;
+      letter-spacing: -0.4px;
+    }
+  }
+
+  &__capitular {
+    float: left;
+    font-size: 92px;
+    line-height: 0.8;
+    font-weight: 300;
+    padding: 8px 12px 0 0;
+  }
+
+  &__etapas {
+    list-style: none;
+    margin-top: 56px;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  &__etapa {
+    padding: 20px 18px;
+    border: 1px solid #dddddd;
+    border-top: 3px solid #111111;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__etapa-n {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: #6b6b6b;
+  }
+
+  &__etapa-titulo { font-size: 21px; line-height: 1.25; }
+
+  &__etapa-texto {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #555555;
+  }
+
+  &__citacao {
+    max-width: 1000px;
+    margin: 80px auto;
+    padding: 0;
+    text-align: center;
+    font-size: 46px;
+    line-height: 1.22;
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: -0.6px;
+
+    span { font-style: normal; }
+  }
+
+  &__jsons {
+    margin-top: 48px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+
+    figure { margin: 0; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+    figcaption {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #555555;
+    }
+  }
+
+  &__codigo {
+    flex: 1;
+    padding: 10px 24px 22px;
+    background: #f6f5f2;
+    border: 1px solid #e4e2dc;
+  }
+
+  &__rodape {
+    margin-top: 96px;
+    padding-top: 20px;
+    border-top: 1px solid #dddddd;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 24px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+
+    a { color: #555555; text-decoration: none; }
+    a:hover { color: #111111; }
+  }
+}
+
+.rp-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* ---- anúncio: a "posição original" da alça ---- */
+
+.rp-anuncio {
+  margin-top: 112px;
+  padding-top: 28px;
+  border-top: 1px solid #111111;
+  scroll-margin-top: 32px;
+
+  &__grade {
+    margin-top: 28px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 48px;
+    align-items: center;
+  }
+
+  &__foto {
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 24px 24px 0;
+    box-sizing: border-box;
+    background: linear-gradient(170deg, #fdf1e0, #f8d9b6);
+  }
+
+  &__marcador {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9a5a17;
+  }
+
+  &__barras {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 64%;
+
+    span { flex: 1; background: linear-gradient(180deg, #d0661a, rgba(232, 140, 60, 0.5)); }
+  }
+
+  &__texto {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+
+    p { font-size: 20px; line-height: 1.6; color: #333333; }
+    strong { font-weight: 500; color: #111111; }
+  }
+
+  &__titulo {
+    font-size: 52px;
+    line-height: 1.02;
+    font-weight: 300;
+    letter-spacing: -1.2px;
+
+    em { font-weight: 300; }
+  }
+
+  &__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 0 26px;
+    background: #111111;
+    color: #ffffff;
+    text-decoration: none;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    transition: transform 0.25s cubic-bezier(0.22, 0.8, 0.24, 1);
+
+    svg { width: 16px; height: 16px; transition: transform 0.25s cubic-bezier(0.22, 0.8, 0.24, 1); }
+    &:hover { transform: translateY(-1px); }
+    &:hover svg { transform: translateX(3px); }
+  }
+}
+
+/* ---- celular: uma coluna ---- */
+
+@media (max-width: 959px) {
+  .rp-artigo {
+    padding: 64px 22px 48px;
+
+    &__chapeu { gap: 12px; font-size: 11px; }
+    &__fio { width: 32px; }
+    &__titulo { margin-top: 24px; font-size: 58px; letter-spacing: -2px; }
+    &__linha-fina { margin-top: 20px !important; font-size: 21px; line-height: 1.35; }
+    &__assinatura { margin-top: 28px; padding: 14px 0; font-size: 11px; gap: 6px 18px; }
+
+    &__corpo {
+      margin-top: 40px;
+      gap: 24px;
+      font-size: 18px;
+      line-height: 1.65;
+
+      h3 { font-size: 28px; margin-top: 12px; }
+    }
+
+    &__capitular { font-size: 70px; padding: 6px 10px 0 0; }
+
+    &__etapas {
+      margin-top: 36px;
+      grid-template-columns: 1fr;
+      gap: 22px;
+      padding-left: 20px;
+      border-left: 2px solid #111111;
+    }
+
+    &__etapa { padding: 0; border: none; gap: 4px; }
+    &__etapa-titulo { font-size: 20px; }
+
+    &__citacao { margin: 52px 0; text-align: left; font-size: 29px; line-height: 1.24; }
+
+    &__jsons { margin-top: 32px; grid-template-columns: 1fr; }
+    &__codigo { padding: 6px 16px 16px; }
+
+    &__rodape { margin-top: 64px; flex-direction: column; font-size: 11px; }
+  }
+
+  .rp-anuncio {
+    margin-top: 72px;
+    padding-top: 22px;
+
+    &__grade { grid-template-columns: 1fr; gap: 22px; }
+    &__foto { height: 200px; padding: 18px 18px 0; }
+    &__titulo { font-size: 38px; }
+    &__texto p { font-size: 18px; }
+    &__cta { align-self: stretch; justify-content: center; }
+  }
+}
