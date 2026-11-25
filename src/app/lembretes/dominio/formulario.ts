@@ -206,3 +206,18 @@ const chaveNumeros = (texto: string): string =>
   [...new Set(texto.split(/[^0-9]+/).map(Number).filter(n => n >= 1 && n <= 31))]
     .sort((a, b) => a - b)
     .join(',');
+
+/**
+ * O rascunho da IA chega no formato de entrada (`categoriaId`, sem `uuid`). O
+ * formulário só lê o id da categoria, então basta dar a ele essa forma —
+ * "ajustar no formulário" é editar o rascunho antes de criar, não um lembrete.
+ */
+export function entradaParaFormulario(entrada: LembreteEntrada): EstadoFormulario {
+  return paraFormulario({
+    titulo: entrada.titulo,
+    descricao: entrada.descricao ?? null,
+    recorrencia: entrada.recorrencia,
+    notificacao: entrada.notificacao,
+    categoria: { id: entrada.categoriaId },
+  } as unknown as Lembrete);
+}
