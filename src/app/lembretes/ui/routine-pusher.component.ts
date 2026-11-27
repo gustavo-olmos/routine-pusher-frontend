@@ -157,8 +157,11 @@ export class RoutinePusherComponent implements OnInit, OnDestroy {
    * A tela tem dois momentos. 1: ver lembretes (card + lista). 2: criar pelo
    * chat (conversa + JSON). `saindo` segura o momento 1 na tela enquanto ele
    * desliza para fora, antes de o chat entrar.
+   *
+   * Entra-se pelo chat: quem chega pela primeira vez via a lista e não sabia
+   * o que fazer. Os lembretes ficam a um clique, no "ver lembretes".
    */
-  protected readonly momento = signal<1 | 2>(1);
+  protected readonly momento = signal<1 | 2>(2);
   protected readonly saindo = signal(false);
   /** A lixeira do card pede confirmação: excluir não tem volta. */
   protected readonly confirmandoExclusao = signal(false);

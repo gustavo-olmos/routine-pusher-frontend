@@ -187,8 +187,8 @@ describe('RoutinePusherComponent', () => {
     limparTema();
   });
 
-  /** Sobe a tela até a lista carregada. */
-  function abrir(lembretes: Lembrete[]): void {
+  /** Sobe a tela com tudo carregado, ainda no chat — é por ele que se entra. */
+  function carregar(lembretes: Lembrete[]): void {
     fixture.detectChanges();
 
     const sessao = http.expectOne(req => req.url === `${API_V1}/sessao`);
@@ -198,6 +198,13 @@ describe('RoutinePusherComponent', () => {
     http.expectOne(req => req.url === `${API_V1}/categoria`).flush(CATEGORIAS);
     http.expectOne(req => req.url === `${API_V1}/lembrete`).flush(lembretes);
     tick();
+    fixture.detectChanges();
+  }
+
+  /** Sobe a tela e vai para os lembretes, pelo "ver lembretes" do chat. */
+  function abrir(lembretes: Lembrete[]): void {
+    carregar(lembretes);
+    (el.querySelector('.rp-voltar') as HTMLButtonElement).click();
     fixture.detectChanges();
   }
 
@@ -226,6 +233,19 @@ describe('RoutinePusherComponent', () => {
     tick();
     fixture.detectChanges();
   }
+
+  it('entra pelo chat: quem chega vê onde escrever, não a lista', fakeAsync(() => {
+    carregar([FATURA]);
+
+    expect(el.querySelector('.rp-chat')).withContext('chat na tela').not.toBeNull();
+    expect(el.querySelector('.rp-composer__input')).withContext('campo da frase').not.toBeNull();
+    expect(el.querySelector('.rp-painel-lista')).withContext('lista fora da tela').toBeNull();
+
+    (el.querySelector('.rp-voltar') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('.rp-painel-lista')).withContext('lista a um clique').not.toBeNull();
+    expect(el.textContent).toContain('Pagar a fatura do cartão');
+  }));
 
   it('manda withCredentials em toda chamada — sem isso cada requisição vira uma sessão nova', fakeAsync(() => {
     fixture.detectChanges();
@@ -1021,7 +1041,7 @@ describe('RoutinePusherComponent', () => {
       http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([]);
       tick();
       fixture.detectChanges();
-      irParaChat();
+      // Já entra no chat.
 
       (el.querySelector('.rp-examples .rp-reset--cats') as HTMLButtonElement).click();
       fixture.detectChanges();
@@ -1044,7 +1064,7 @@ describe('RoutinePusherComponent', () => {
       http.expectOne(req => req.url === `${API_V1}/lembrete`).flush([]);
       tick();
       fixture.detectChanges();
-      irParaChat();
+      // Já entra no chat.
 
       // `categoriaId` é obrigatório ao criar: o campo de frase só levaria a 404.
       expect(el.querySelector('.rp-composer__input')).withContext('sem campo de frase').toBeNull();
