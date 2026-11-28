@@ -132,7 +132,9 @@ export class LembretesStore {
       this.funil.registrar('lembrete_interpretado', { caracteres: frase.length });
       return rascunho;
     } catch (erro) {
-      this.falha.set(normalizarFalha(erro));
+      const falha = normalizarFalha(erro);
+      this.falha.set(falha);
+      if (falha.iaOcupada) this.funil.registrar('ia_ocupada', { tenteEm: falha.tenteEm ?? null });
       return null;
     } finally {
       this.enviando.set(false);

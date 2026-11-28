@@ -82,6 +82,7 @@
     </header>
 
     @if (falha(); as f) {
+      @if (!f.iaOcupada) {
       <div class="rp-alerta" [class.rp-alerta--limite]="f.limiteAtingido" role="alert">
         <span class="rp-alerta__marca rp-mono">{{ f.limiteAtingido ? 'limite' : 'erro ' + f.status }}</span>
         <span class="rp-alerta__texto">{{ mensagemFalha() }}</span>
@@ -91,6 +92,7 @@
           </svg>
         </button>
       </div>
+      }
     }
 
 
@@ -291,6 +293,26 @@
 
           @if (enviando() && !rascunho() && !recemCriado()) {
             <div class="rp-bolha rp-bolha--digitando" aria-label="interpretando a frase"><span></span><span></span><span></span></div>
+          }
+
+          @if (iaOcupada() && !enviando()) {
+            <div class="rp-bolha rp-bolha--ia rp-bolha--ocupada" role="status">
+              <span>
+                Muita gente testando a IA agora.
+                @if (segundosIa() > 0) {
+                  Tente de novo em <strong class="rp-mono">{{ segundosIa() }} s</strong> —
+                } @else {
+                  Já dá para tentar de novo —
+                }
+                ou crie pelo formulário, que não depende de IA.
+              </span>
+              <div class="rp-bolha__acoes">
+                <button type="button" class="rp-criar" [disabled]="segundosIa() > 0" (click)="tentarIaDeNovo()">
+                  tentar de novo
+                </button>
+                <button type="button" class="rp-ajustar" (click)="criarSemIa()">criar pelo formulário</button>
+              </div>
+            </div>
           }
 
           @if (rascunho(); as r) {

@@ -10,6 +10,7 @@ export type EventoFunil =
   | 'agendador_aberto'
   | 'sugestao_usada'
   | 'lembrete_interpretado'
+  | 'ia_ocupada'
   | 'rascunho_descartado'
   | 'lembrete_criado_ia'
   | 'lembrete_criado_form'

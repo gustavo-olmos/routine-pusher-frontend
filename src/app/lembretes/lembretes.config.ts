@@ -24,7 +24,11 @@ const LOCAIS = new Set(['localhost', '127.0.0.1', '[::1]']);
  * num endereço chumbado esconderia um build feito por fora do script.
  */
 export const API_BASE = (() => {
-  const host = typeof location !== 'undefined' ? location.hostname : '';
+  // Pré-renderização no build: não há `location` e nada chama a API (o
+  // agendador só inicia no navegador). Sem isto, `ng build`/`ng serve` locais,
+  // que não definem API_URL, quebrariam ao gerar o HTML.
+  if (typeof location === 'undefined') return typeof API_URL === 'string' && API_URL ? API_URL : '';
+  const host = location.hostname;
   if (LOCAIS.has(host)) return 'http://localhost:8080';
   if (typeof API_URL === 'string' && API_URL) return API_URL;
   throw new Error('API_URL ausente: o build de produção lê o backend do .env — use `npm run build`.');

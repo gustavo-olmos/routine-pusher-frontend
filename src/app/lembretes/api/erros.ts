@@ -20,6 +20,10 @@ export interface Falha {
   limiteAtingido: boolean;
   /** Rede/CORS/servidor fora — em dev quase sempre é o backend local desligado. */
   semRede: boolean;
+  /** 503: a IA está fora ou freada pelo backend. O formulário segue funcionando. */
+  iaOcupada?: boolean;
+  /** Segundos do `Retry-After` do 503, quando o navegador deixa ler o cabeçalho. */
+  tenteEm?: number | null;
 }
 
 const SEM_REDE =
@@ -54,6 +58,21 @@ export function normalizarFalha(erro: unknown): Falha {
 
   const corpo = corpoDoErro(erro);
   const campos = corpo?.camposInvalidos ?? {};
+
+  // 503 da interpretação: o provedor de IA recusou ou o freio global segurou.
+  // Não é defeito da frase nem do site, e o formulário não depende de IA.
+  if (erro.status === 503) {
+    const segundos = Number(erro.headers?.get('Retry-After'));
+    return {
+      status: 503,
+      mensagem: corpo?.mensagem ?? 'A IA está ocupada agora.',
+      campos,
+      limiteAtingido: false,
+      semRede: false,
+      iaOcupada: true,
+      tenteEm: Number.isFinite(segundos) && segundos > 0 ? Math.ceil(segundos) : null,
+    };
+  }
 
   if (erro.status === 429) {
     return {
