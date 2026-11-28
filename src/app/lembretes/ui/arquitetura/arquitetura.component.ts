@@ -141,7 +141,9 @@ export class ArquiteturaComponent implements OnDestroy {
   }
 
   private parar(): void {
-    cancelAnimationFrame(this.raf);
+    // Na pré-renderização não há quadro de animação: nada foi agendado.
+    if (this.raf) cancelAnimationFrame(this.raf);
+    this.raf = 0;
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
   }

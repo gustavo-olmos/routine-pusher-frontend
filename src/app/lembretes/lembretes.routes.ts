@@ -18,7 +18,7 @@ import { FunilService } from './funil/funil.service';
 const routes: Routes = [
   {
     path: '',
-    title: 'Lembretes · Routine Pusher',
+    title: 'Routine Pusher · da frase ao JSON',
     providers: [
       provideHttpClient(withInterceptors([credenciaisInterceptor])),
       SessaoService,
