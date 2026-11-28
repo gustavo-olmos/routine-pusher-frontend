@@ -9,7 +9,7 @@
       expressar.
     </p>
     <div class="rp-artigo__assinatura">
-      <span>por Gustavo Olmos</span><span>backend · IA · motor de regras</span><span>6 min de leitura</span>
+      <span>por <a [href]="LINKEDIN" target="_blank" rel="noreferrer">Gustavo Olmos</a></span><span>backend · IA · motor de regras</span><span>8 min de leitura</span>
     </div>
   </header>
 
@@ -53,15 +53,7 @@
     </p>
   </div>
 
-  <ol class="rp-artigo__etapas">
-    @for (e of etapas; track e.n) {
-      <li class="rp-artigo__etapa">
-        <span class="rp-artigo__etapa-n">{{ e.n }}</span>
-        <span class="rp-artigo__etapa-titulo">{{ e.titulo }}</span>
-        <span class="rp-artigo__etapa-texto">{{ e.texto }}</span>
-      </li>
-    }
-  </ol>
+  <rp-arquitetura class="rp-artigo__figura" />
 
   <div class="rp-artigo__corpo">
     <p>
@@ -129,10 +121,37 @@
       vaga custa uma contagem no banco; chamar o modelo custa dinheiro, então vem depois.
     </p>
     <p>
+      <strong>O motor no centro.</strong> A estrutura foi pensada em 2024 por domain-driven
+      design, quando ainda não havia agente nenhum sugerindo pastas. As classes têm o nome do
+      negócio — <code>Lembrete</code>, <code>Recorrencia</code>, <code>Notificacao</code>,
+      <code>PoliticaDiaUtil</code> —, o modelo de domínio é separado da tabela que o guarda, e o
+      que vem de fora — o modelo de IA, o calendário de feriados, a sessão do navegador — entra por
+      portas que o próprio domínio declara. É por isso que trocar de provedor não encosta no motor
+      de regras.
+    </p>
+  </div>
+
+  <rp-hexagono class="rp-artigo__figura" />
+
+  <div class="rp-artigo__corpo">
+    <p>
+      No centro, o motor de recorrência não conhece Spring, banco, HTTP nem IA: a única biblioteca
+      que ele usa é a calculadora de cron do Quartz. A borda do domínio ainda é pragmática — os
+      repositórios do Spring Data moram ali —, mas o que importa ficou isolado. E as convenções não
+      ficam num documento que ninguém lê: viram testes de arquitetura, e uma classe no pacote
+      errado quebra o build junto com os 167 testes da suíte.
+    </p>
+    <p>
       <strong>Agendamento de verdade.</strong> Um lembrete aqui não é uma linha numa tabela
       esperando alguém consultar: é um trigger do Quartz, persistido no Postgres, que dispara na
       hora marcada, sobrevive a um restart e chega ao navegador por SSE. Um disparo de cada vez —
       o resto é projeção.
+    </p>
+    <p>
+      <strong>Atraso não vira enxurrada.</strong> Se o servidor fica fora do ar, os disparos que
+      venceram nesse meio-tempo voltam todos de uma vez quando ele sobe. Descartá-los deixaria
+      lembretes órfãos, porque é cada disparo que agenda o seguinte. Então o job roda, confere o
+      atraso e, passados cinco minutos, só reagenda: uma notificação velha vale menos que nenhuma.
     </p>
 
     <h3>O que vem depois</h3>
@@ -188,10 +207,23 @@
     </div>
   </section>
 
+  <aside class="rp-autor" aria-label="sobre o autor">
+    <span class="rp-autor__chapeu">Quem fez</span>
+    <p class="rp-autor__nome">Gustavo Olmos</p>
+    <p class="rp-autor__cargo">Software Engineer · Full Stack (backend-focused)</p>
+    <p class="rp-autor__bio">
+      Desenhei o backend à mão — motor de regras, contrato com a IA, agendamento — e dirigi o front
+      com IA, do design ao deploy.
+    </p>
+    <nav class="rp-autor__links">
+      <a [href]="LINKEDIN" target="_blank" rel="noreferrer">LinkedIn ↗</a>
+      <a href="https://github.com/gustavo-olmos/routine-pusher-backend" target="_blank" rel="noreferrer">código do backend ↗</a>
+      <a href="https://github.com/gustavo-olmos/routine-pusher-frontend" target="_blank" rel="noreferrer">código do front ↗</a>
+    </nav>
+  </aside>
+
   <footer class="rp-artigo__rodape">
-    <a href="https://github.com/gustavo-olmos/routine-pusher-frontend" target="_blank" rel="noreferrer">
-      github.com/gustavo-olmos/routine-pusher-frontend ↗
-    </a>
+    <a href="https://github.com/gustavo-olmos" target="_blank" rel="noreferrer">github.com/gustavo-olmos ↗</a>
     <a class="rp-footer__link--quiet" [href]="SIMULADOR_URL" (click)="saida.emit('rodape')">
       simulador de financiamento RotaFin →
     </a>

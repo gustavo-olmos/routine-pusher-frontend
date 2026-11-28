@@ -99,39 +99,7 @@
     padding: 8px 12px 0 0;
   }
 
-  &__etapas {
-    list-style: none;
-    margin-top: 56px;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 14px;
-  }
-
-  &__etapa {
-    padding: 20px 18px;
-    border: 1px solid #dddddd;
-    border-top: 3px solid #111111;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  &__etapa-n {
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    color: #6b6b6b;
-  }
-
-  &__etapa-titulo { font-size: 21px; line-height: 1.25; }
-
-  &__etapa-texto {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 13px;
-    line-height: 1.5;
-    color: #555555;
-  }
+  &__figura { margin-top: 72px; margin-bottom: 24px; }
 
   &__citacao {
     max-width: 1000px;
@@ -282,16 +250,7 @@
 
     &__capitular { font-size: 70px; padding: 6px 10px 0 0; }
 
-    &__etapas {
-      margin-top: 36px;
-      grid-template-columns: 1fr;
-      gap: 22px;
-      padding-left: 20px;
-      border-left: 2px solid #111111;
-    }
-
-    &__etapa { padding: 0; border: none; gap: 4px; }
-    &__etapa-titulo { font-size: 20px; }
+    &__figura { margin-top: 48px; }
 
     &__citacao { margin: 52px 0; text-align: left; font-size: 29px; line-height: 1.24; }
 
@@ -300,6 +259,8 @@
 
     &__rodape { margin-top: 64px; flex-direction: column; font-size: 11px; }
   }
+
+  .rp-autor { margin-top: 64px; &__nome { font-size: 28px; } &__bio { font-size: 17px; } }
 
   .rp-anuncio {
     margin-top: 72px;
@@ -310,5 +271,48 @@
     &__titulo { font-size: 38px; }
     &__texto p { font-size: 18px; }
     &__cta { align-self: stretch; justify-content: center; }
+  }
+}
+
+.rp-artigo__assinatura a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+
+.rp-autor {
+  max-width: 720px;
+  margin: 96px auto 0;
+  padding: 28px 0 0;
+  border-top: 3px solid #111111;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &__chapeu {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #555555;
+  }
+
+  &__nome { margin: 8px 0 0; font-size: 34px; font-weight: 300; }
+
+  &__cargo {
+    margin: 0;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+    color: #444444;
+  }
+
+  &__bio { margin: 10px 0 0; font-size: 19px; line-height: 1.55; color: #222222; }
+
+  &__links {
+    margin-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+
+    a { color: #111111; text-underline-offset: 3px; }
+    a:focus-visible { outline: 2px solid #2f5fd0; outline-offset: 2px; }
   }
 }

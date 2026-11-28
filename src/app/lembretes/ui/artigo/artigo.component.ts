@@ -4,6 +4,8 @@ import { linhasJson } from '../../dominio/json-colorido';
 import { Convite } from '../../estado/lembretes.store';
 import { OrigemSaida } from '../../funil/funil.service';
 import { SIMULADOR_URL } from '../../lembretes.config';
+import { ArquiteturaComponent } from '../arquitetura/arquitetura.component';
+import { HexagonoComponent } from '../hexagono/hexagono.component';
 import { PainelJsonComponent } from '../painel-json/painel-json.component';
 import { EXEMPLO_RASCUNHO, EXEMPLO_RESPOSTA, FRASE_EXEMPLO } from './exemplos';
 
@@ -17,7 +19,7 @@ import { EXEMPLO_RASCUNHO, EXEMPLO_RESPOSTA, FRASE_EXEMPLO } from './exemplos';
 @Component({
   selector: 'rp-artigo',
   standalone: true,
-  imports: [PainelJsonComponent],
+  imports: [ArquiteturaComponent, HexagonoComponent, PainelJsonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './artigo.component.html',
   styleUrl: './artigo.component.scss',
@@ -29,14 +31,7 @@ export class ArtigoComponent {
 
   protected readonly SIMULADOR_URL = SIMULADOR_URL;
   protected readonly FRASE_EXEMPLO = FRASE_EXEMPLO;
+  protected readonly LINKEDIN = 'https://www.linkedin.com/in/olmos-gustavo';
   protected readonly linhasIa = linhasJson(EXEMPLO_RASCUNHO);
   protected readonly linhasResposta = linhasJson(EXEMPLO_RESPOSTA);
-
-  protected readonly etapas = [
-    { n: '01', titulo: 'A frase', texto: 'Escrita como numa conversa, com o relógio de quem escreve.' },
-    { n: '02', titulo: 'A IA', texto: 'Gemini ou Claude preenchem um schema derivado do próprio DTO.' },
-    { n: '03', titulo: 'A validação', texto: 'As mesmas regras do formulário, e a prévia das datas.' },
-    { n: '04', titulo: 'A revisão', texto: 'Você confere o JSON. Nada foi salvo até aqui.' },
-    { n: '05', titulo: 'O agendamento', texto: 'Confirmado, vira um trigger do Quartz no Postgres.' },
-  ];
 }
