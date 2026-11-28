@@ -1,3 +1,4 @@
+import { isPlatformBrowser } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -5,6 +6,7 @@ import {
   inject,
   output,
   signal,
+  PLATFORM_ID,
 } from '@angular/core';
 
 import { FunilService } from '../../funil/funil.service';
@@ -54,6 +56,7 @@ function prefereMenosMovimento(): boolean {
 })
 export class AlcaRotafinComponent implements OnInit {
   private readonly funil = inject(FunilService);
+  private readonly plataforma = inject(PLATFORM_ID);
 
   /** O clique no corpo da alça: o anfitrião rola até o anúncio. */
   readonly tocar = output<void>();
@@ -63,7 +66,8 @@ export class AlcaRotafinComponent implements OnInit {
   private inicioToque: number | null = null;
 
   ngOnInit(): void {
-    if (jaVista() || prefereMenosMovimento()) return;
+    // No HTML pré-renderizado ela não vai: quem decide se sobe é o navegador.
+    if (!isPlatformBrowser(this.plataforma) || jaVista() || prefereMenosMovimento()) return;
     marcarVista();
     this.visivel.set(true);
     this.funil.registrar('alca_rotafin_vista');

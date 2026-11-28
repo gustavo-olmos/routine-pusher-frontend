@@ -6,6 +6,7 @@ import {
   OnDestroy,
   Injector,
   OnInit,
+  PLATFORM_ID,
   afterNextRender,
   computed,
   effect,
@@ -13,6 +14,7 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 
 import { resumoDosCampos } from '../api/erros';
 import {
@@ -107,6 +109,7 @@ export class RoutinePusherComponent implements OnInit, OnDestroy {
   private readonly funil = inject(FunilService);
   private readonly notificacoes = inject(NotificacoesService);
   private readonly alerta = inject(AlertaService);
+  private readonly plataforma = inject(PLATFORM_ID);
 
   readonly theme = input<Tema>('light');
   /** Teto de execuções exibidas; o servidor manda cinco. */
@@ -443,6 +446,8 @@ Detalhes...") e é um defeito conhecido do backend. Mostrar
   );
 
   ngOnInit(): void {
+    // Pré-renderização: a tela sai vazia no HTML e só o navegador fala com a API.
+    if (!isPlatformBrowser(this.plataforma)) return;
     this.funil.registrar('agendador_aberto');
     this.notificacoes.aoReceber = titulo => this.alertarDisparo(titulo);
     // O servidor não guarda o que disparou com o stream fora; relistar ao menos
