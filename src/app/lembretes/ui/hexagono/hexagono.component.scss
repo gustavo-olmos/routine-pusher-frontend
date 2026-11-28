@@ -1,0 +1,106 @@
+/* Fig. 2: mesma tinta da Fig. 1. O azul aqui marca o motor — o que não muda. */
+
+:host { display: block; }
+
+.rp-hex {
+  --tinta: #111111;
+  --azul: #2f5fd0;
+
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 48px;
+  align-items: center;
+
+  &__svg { display: block; width: 100%; height: auto; overflow: visible; }
+  &__svg--celular { display: none; }
+
+  &__aplicacao { fill: #ffffff; stroke: var(--tinta); stroke-width: 0.75; }
+  &__dominio { fill: #f5f4ef; stroke: var(--tinta); stroke-width: 0.75; }
+  &__motor { fill: #ffffff; stroke: var(--azul); stroke-width: 1.5; }
+  &__porta { fill: #ffffff; stroke: var(--tinta); stroke-width: 1; }
+
+  &__seta {
+    fill: none;
+    stroke: #8a8a8a;
+    stroke-width: 0.75;
+    stroke-dasharray: 4 3;
+  }
+
+  &__adaptador { fill: #ffffff; stroke: var(--tinta); stroke-width: 0.75; stroke-dasharray: 4 3; }
+
+  &__rotulo,
+  &__t { dominant-baseline: central; }
+
+  &__rotulo {
+    text-anchor: middle;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    fill: var(--tinta);
+  }
+
+  &__rotulo--b { opacity: 0; }
+
+  &__t--nome { font-family: 'Newsreader', Georgia, serif; font-size: 17px; fill: var(--tinta); }
+  &__t--sub { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; fill: #4a4a4a; }
+  &__t--nucleo { font-family: 'Newsreader', Georgia, serif; font-size: 17px; fill: var(--azul); }
+  &__t--nucleo-sub { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; fill: var(--azul); }
+
+  &__t--porta {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    fill: #6b6b6b;
+  }
+
+  &__legenda { display: flex; flex-direction: column; gap: 18px; }
+
+  &__fig {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #555555;
+  }
+
+  &__texto {
+    margin: 0;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #444444;
+  }
+
+  &__glossario {
+    margin: 0;
+    display: grid;
+    gap: 4px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+
+    dt { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e2e2e2; color: var(--tinta); }
+    dd { margin: 0; color: #555555; }
+    code { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--tinta); }
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rp-hex__seta { animation: rpHexFluir 1.4s linear infinite; }
+  .rp-hex__rotulo--a { animation: rpHexTrocaA 7s ease-in-out infinite; }
+  .rp-hex__rotulo--b { animation: rpHexTrocaB 7s ease-in-out infinite; }
+}
+
+@keyframes rpHexFluir { to { stroke-dashoffset: -14; } }
+@keyframes rpHexTrocaA { 0%, 42% { opacity: 1; } 50%, 92% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes rpHexTrocaB { 0%, 42% { opacity: 0; } 50%, 92% { opacity: 1; } 100% { opacity: 0; } }
+
+@media (max-width: 959px) {
+  .rp-hex {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+
+    &__svg { display: none; }
+    &__svg--celular { display: block; max-width: 420px; margin: 0 auto; }
+  }
+}

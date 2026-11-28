@@ -1,0 +1,59 @@
+<figure class="rp-hex" aria-labelledby="rp-hex-legenda">
+  <div class="rp-hex__palco">
+    @for (d of desenhos; track d.nome) {
+      <svg
+        class="rp-hex__svg"
+        [class.rp-hex__svg--celular]="d.nome === 'celular'"
+        [attr.viewBox]="'0 0 ' + d.largura + ' ' + d.altura"
+        role="img"
+        aria-label="Arquitetura hexagonal do backend: adaptadores por fora, casos de uso, domínio e o motor de recorrência no centro, com as dependências apontando para dentro">
+        <defs>
+          <marker [attr.id]="'rp-hex-seta-' + d.nome" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+          </marker>
+        </defs>
+
+        <polygon class="rp-hex__aplicacao" [attr.points]="d.camadas[0]"></polygon>
+        <polygon class="rp-hex__dominio" [attr.points]="d.camadas[1]"></polygon>
+        <polygon class="rp-hex__motor" [attr.points]="d.camadas[2]"></polygon>
+
+        @for (p of d.portas; track $index) {
+          <circle class="rp-hex__porta" [attr.cx]="p.x" [attr.cy]="p.y" r="5"></circle>
+        }
+
+        @for (s of d.setas; track $index) {
+          <path class="rp-hex__seta" [attr.d]="s" [attr.marker-end]="'url(#rp-hex-seta-' + d.nome + ')'"></path>
+        }
+
+        @for (a of d.adaptadores; track a.rotulo) {
+          <rect class="rp-hex__adaptador" [attr.x]="a.x" [attr.y]="a.y" [attr.width]="a.w" [attr.height]="a.h" rx="3"></rect>
+          <text class="rp-hex__rotulo" [class.rp-hex__rotulo--a]="a.troca" [attr.x]="a.x + a.w / 2" [attr.y]="a.y + a.h / 2">{{ a.rotulo }}</text>
+          @if (a.troca) {
+            <text class="rp-hex__rotulo rp-hex__rotulo--b" [attr.x]="a.x + a.w / 2" [attr.y]="a.y + a.h / 2" aria-hidden="true">{{ a.troca }}</text>
+          }
+        }
+
+        @for (t of d.textos; track $index) {
+          <text [class]="'rp-hex__t rp-hex__t--' + t.classe" [attr.x]="t.x" [attr.y]="t.y" [attr.text-anchor]="t.ancora ?? 'middle'">{{ t.texto }}</text>
+        }
+      </svg>
+    }
+  </div>
+
+  <figcaption id="rp-hex-legenda" class="rp-hex__legenda">
+    <span class="rp-hex__fig">Fig. 2 — o motor no centro</span>
+    <p class="rp-hex__texto">
+      As dependências só apontam para dentro. Os adaptadores — HTTP, SSE, jobs, IA, banco, feriados —
+      plugam nas portas que o domínio declara; trocar um deles, como o provedor de IA, não move nada
+      no centro.
+    </p>
+    <dl class="rp-hex__glossario">
+      <dt>Linguagem do negócio</dt>
+      <dd><code>Lembrete</code>, <code>Recorrencia</code>, <code>Notificacao</code>, <code>PoliticaDiaUtil</code></dd>
+      <dt>Modelo ≠ tabela</dt>
+      <dd><code>Lembrete</code> é a regra; <code>LembreteEntity</code>, a persistência</dd>
+      <dt>Portas</dt>
+      <dd><code>FeriadoPort</code>, <code>SessaoAtualPort</code>, <code>CategoriaQueryPort</code></dd>
+    </dl>
+  </figcaption>
+</figure>

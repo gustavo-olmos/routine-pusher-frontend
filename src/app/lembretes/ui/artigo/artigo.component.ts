@@ -5,6 +5,7 @@ import { Convite } from '../../estado/lembretes.store';
 import { OrigemSaida } from '../../funil/funil.service';
 import { SIMULADOR_URL } from '../../lembretes.config';
 import { ArquiteturaComponent } from '../arquitetura/arquitetura.component';
+import { HexagonoComponent } from '../hexagono/hexagono.component';
 import { PainelJsonComponent } from '../painel-json/painel-json.component';
 import { EXEMPLO_RASCUNHO, EXEMPLO_RESPOSTA, FRASE_EXEMPLO } from './exemplos';
 
@@ -18,7 +19,7 @@ import { EXEMPLO_RASCUNHO, EXEMPLO_RESPOSTA, FRASE_EXEMPLO } from './exemplos';
 @Component({
   selector: 'rp-artigo',
   standalone: true,
-  imports: [ArquiteturaComponent, PainelJsonComponent],
+  imports: [ArquiteturaComponent, HexagonoComponent, PainelJsonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './artigo.component.html',
   styleUrl: './artigo.component.scss',
