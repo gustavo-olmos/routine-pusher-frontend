@@ -5,11 +5,11 @@
 
 .rp-artigo {
   --tk-chave: #2f5fd0;
-  --tk-texto: #2f8a57;
+  --tk-texto: #23703f;
   --tk-numero: #9c36b5;
-  --tk-literal: #8a8983;
+  --tk-literal: #66655f;
   --tk-pont: #6b6a65;
-  --tk-vazio: #b4b2a9;
+  --tk-vazio: #6e6d67;
   --hair: #dddddd;
   --code-bg: transparent;
 
@@ -150,7 +150,7 @@
     font-family: 'IBM Plex Mono', ui-monospace, monospace;
     font-size: 12px;
 
-    a { color: #555555; text-decoration: none; }
+    a { display: inline-block; padding: 6px 0; color: #555555; text-decoration: none; }
     a:hover { color: #111111; }
   }
 }
