@@ -121,6 +121,13 @@
       vaga custa uma contagem no banco; chamar o modelo custa dinheiro, então vem depois.
     </p>
     <p>
+      <strong>Pico de visitas não derruba a IA.</strong> A cota por sessão protege o custo de um
+      visitante, não o provedor de todos juntos — e quem apaga o cookie ganha sessão nova. Por cima
+      de todas as sessões há um freio: um limite de chamadas por minuto abaixo do teto do provedor
+      e, se ele recusar mesmo assim, uma pausa em que ninguém o chama. Quem chega nessa hora não
+      perde tentativa: vê uma contagem regressiva e o formulário, que não depende de IA.
+    </p>
+    <p>
       <strong>O motor no centro.</strong> A estrutura foi pensada em 2024 por domain-driven
       design, quando ainda não havia agente nenhum sugerindo pastas. As classes têm o nome do
       negócio — <code>Lembrete</code>, <code>Recorrencia</code>, <code>Notificacao</code>,
@@ -135,11 +142,11 @@
 
   <div class="rp-artigo__corpo">
     <p>
-      No centro, o motor de recorrência não conhece Spring, banco, HTTP nem IA: a única biblioteca
-      que ele usa é a calculadora de cron do Quartz. A borda do domínio ainda é pragmática — os
+      No centro, o motor de recorrência não conhece Spring, banco, HTTP nem IA: a única dependência
+      de fora é a calculadora de cron do Quartz. A borda do domínio ainda é pragmática — os
       repositórios do Spring Data moram ali —, mas o que importa ficou isolado. E as convenções não
       ficam num documento que ninguém lê: viram testes de arquitetura, e uma classe no pacote
-      errado quebra o build junto com os 167 testes da suíte.
+      errado quebra o build junto com os 174 testes da suíte.
     </p>
     <p>
       <strong>Agendamento de verdade.</strong> Um lembrete aqui não é uma linha numa tabela
