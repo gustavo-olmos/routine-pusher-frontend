@@ -1,0 +1,51 @@
+<figure class="rp-arq" aria-labelledby="rp-arq-legenda">
+  <div class="rp-arq__palco">
+    @for (d of desenhos; track d.nome) {
+      <svg
+        class="rp-arq__svg"
+        [class.rp-arq__svg--celular]="d.nome === 'celular'"
+        [attr.viewBox]="'0 0 ' + d.largura + ' ' + d.altura"
+        role="img"
+        [attr.aria-label]="'Arquitetura do Routine Pusher, momento ' + momento().n + ': ' + momento().titulo">
+        <g class="rp-arq__fios">
+          @for (f of d.fios; track $index) {
+            <path [attr.d]="f"></path>
+          }
+        </g>
+        <rect class="rp-arq__api" [attr.x]="d.api.x" [attr.y]="d.api.y" [attr.width]="d.api.w" [attr.height]="d.api.h"></rect>
+        <text class="rp-arq__rotulo" [attr.x]="d.api.x + 16" [attr.y]="d.api.y + 20">{{ d.api.rotulo }}</text>
+
+        @for (c of d.camadas; track c.id) {
+          <g class="rp-arq__camada" [class.rp-arq__camada--externa]="c.externa" [class.rp-arq__camada--ativa]="ativa(c)">
+            <rect [attr.x]="c.x" [attr.y]="c.y" [attr.width]="c.w" [attr.height]="c.h" rx="3"></rect>
+            <text class="rp-arq__titulo" [attr.x]="c.x + c.w / 2" [attr.y]="c.y + c.h / 2 - 7">{{ c.titulo }}</text>
+            <text class="rp-arq__sub" [attr.x]="c.x + c.w / 2" [attr.y]="c.y + c.h / 2 + 11">{{ c.sub }}</text>
+          </g>
+        }
+
+        <path #caminho class="rp-arq__caminho" [attr.d]="caminhoDe(d)"></path>
+        <circle #ponto class="rp-arq__ponto" r="6" cx="-20" cy="-20"></circle>
+      </svg>
+    }
+  </div>
+
+  <figcaption id="rp-arq-legenda" class="rp-arq__legenda">
+    <span class="rp-arq__fig">Fig. 1 — o caminho de um lembrete</span>
+    <ol class="rp-arq__momentos">
+      @for (m of momentos; track m.n) {
+        <li>
+          <button
+            type="button"
+            class="rp-arq__momento"
+            [class.rp-arq__momento--atual]="m.n === momento().n"
+            [attr.aria-pressed]="m.n === momento().n"
+            (click)="escolher(m.n)">
+            <span class="rp-arq__n">0{{ m.n }}</span>
+            <span class="rp-arq__nome">{{ m.titulo }}</span>
+          </button>
+        </li>
+      }
+    </ol>
+    <p class="rp-arq__texto" aria-live="polite">{{ momento().texto }}</p>
+  </figcaption>
+</figure>

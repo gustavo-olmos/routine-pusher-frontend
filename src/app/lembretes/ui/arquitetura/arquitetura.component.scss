@@ -1,0 +1,130 @@
+/* Figura de revista: traço preto e fino, um único ponto de cor — a frase. */
+
+:host { display: block; }
+
+.rp-arq {
+  --tinta: #111111;
+  --apagado: 0.26;
+  --frase: #2f5fd0;
+
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 48px;
+  align-items: center;
+
+  &__svg { display: block; width: 100%; height: auto; overflow: visible; }
+  &__svg--celular { display: none; }
+
+  &__fios path {
+    fill: none;
+    stroke: #b9b9b9;
+    stroke-width: 0.75;
+    stroke-dasharray: 3 3;
+  }
+
+  &__api {
+    fill: none;
+    stroke: var(--tinta);
+    stroke-width: 0.75;
+    stroke-dasharray: 6 4;
+  }
+
+  &__rotulo {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    fill: #555555;
+  }
+
+  &__camada {
+    opacity: var(--apagado);
+    transition: opacity 500ms ease;
+
+    rect { fill: #ffffff; stroke: var(--tinta); stroke-width: 0.75; transition: stroke-width 500ms ease; }
+    &--externa rect { fill: #f5f4ef; stroke-dasharray: 4 3; }
+    &--ativa { opacity: 1; }
+    &--ativa rect { stroke-width: 1.25; }
+  }
+
+  &__titulo,
+  &__sub { text-anchor: middle; dominant-baseline: central; }
+
+  &__titulo { font-family: 'Newsreader', Georgia, serif; font-size: 16px; fill: var(--tinta); }
+
+  &__sub {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    fill: #5a5a5a;
+  }
+
+  &__caminho { fill: none; stroke: none; }
+  &__ponto { fill: var(--frase); }
+
+  &__legenda { display: flex; flex-direction: column; gap: 18px; }
+
+  &__fig {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #555555;
+  }
+
+  &__momentos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+
+  &__momento {
+    width: 100%;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 10px 0;
+    border: none;
+    border-top: 1px solid #e2e2e2;
+    background: none;
+    color: #8a8a8a;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: color 300ms ease;
+
+    &:hover { color: var(--tinta); }
+    &:focus-visible { outline: 2px solid var(--frase); outline-offset: 2px; }
+  }
+
+  &__momento--atual { color: var(--tinta); }
+  &__momento--atual &__n { color: var(--frase); }
+
+  &__n { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.1em; }
+  &__nome { font-family: 'Newsreader', Georgia, serif; font-size: 22px; }
+
+  &__texto {
+    margin: 0;
+    min-height: 7.5em;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #444444;
+  }
+}
+
+@media (max-width: 959px) {
+  .rp-arq {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+
+    &__svg { display: none; }
+    &__svg--celular { display: block; max-width: 420px; margin: 0 auto; }
+
+    &__momentos { flex-direction: row; gap: 16px; }
+    &__momento { flex-direction: column; gap: 2px; padding-top: 8px; }
+    &__nome { font-size: 18px; }
+    &__texto { min-height: 9em; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-arq__camada,
+  .rp-arq__camada rect,
+  .rp-arq__momento { transition: none; }
+}
