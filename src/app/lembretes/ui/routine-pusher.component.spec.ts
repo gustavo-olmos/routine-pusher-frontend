@@ -247,6 +247,33 @@ describe('RoutinePusherComponent', () => {
     expect(el.textContent).toContain('Pagar a fatura do cartão');
   }));
 
+  it('IA ocupada (503): aviso na conversa com contagem, e o formulário abre com a frase', fakeAsync(() => {
+    carregar([FATURA]);
+    enviarFrase('me lembra de regar as plantas toda segunda');
+    http.expectOne(req => req.url === `${API_V1}/chat/interpretacao`).flush(
+      { status: 503, erro: 'Service Unavailable', mensagem: 'Muita gente testando a IA agora', caminho: '/x', timestamp: '' },
+      { status: 503, statusText: 'Service Unavailable', headers: { 'Retry-After': '3' } },
+    );
+    tick();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.rp-alerta')).withContext('sem alerta no topo').toBeNull();
+    const aviso = el.querySelector('.rp-bolha--ocupada') as HTMLElement;
+    expect(aviso).withContext('aviso na conversa').not.toBeNull();
+    expect(aviso.textContent).toContain('3 s');
+    const tentar = aviso.querySelector('.rp-criar') as HTMLButtonElement;
+    expect(tentar.disabled).withContext('espera o Retry-After').toBeTrue();
+
+    tick(3000);
+    fixture.detectChanges();
+    expect(tentar.disabled).withContext('contagem acabou').toBeFalse();
+
+    (aviso.querySelector('.rp-ajustar') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const titulo = el.querySelector('.rp-panel input') as HTMLInputElement | null;
+    expect(titulo?.value).toBe('me lembra de regar as plantas toda segunda');
+  }));
+
   it('manda withCredentials em toda chamada — sem isso cada requisição vira uma sessão nova', fakeAsync(() => {
     fixture.detectChanges();
 

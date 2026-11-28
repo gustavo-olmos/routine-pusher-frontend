@@ -296,7 +296,36 @@ export class RoutinePusherComponent implements OnInit, OnDestroy {
 
   /** A conversa já começou: as sugestões só aparecem antes da primeira frase. */
   protected readonly conversaIniciada = computed(
-    () => !!this.rascunho() || !!this.recemCriado() || (this.enviando() && !!this.fraseEnviada()),
+    () =>
+      !!this.rascunho() ||
+      !!this.recemCriado() ||
+      (this.enviando() && !!this.fraseEnviada()) ||
+      (this.iaOcupada() && !!this.fraseEnviada()),
+  );
+
+  /**
+   * A IA respondeu 503: o provedor recusou ou o freio do backend segurou. O
+   * aviso mora na conversa, não no alerta do topo — e oferece o formulário,
+   * que não depende de IA.
+   */
+  protected readonly iaOcupada = computed(() => !!this.falha()?.iaOcupada);
+  /** Contagem regressiva do `Retry-After`; zero libera o "tentar de novo". */
+  protected readonly segundosIa = signal(0);
+  private relogioIa: ReturnType<typeof setInterval> | null = null;
+  private readonly contagemIa = effect(
+    () => {
+      const f = this.falha();
+      this.pararRelogioIa();
+      const total = f?.iaOcupada ? (f.tenteEm ?? 0) : 0;
+      this.segundosIa.set(total);
+      if (total <= 0 || typeof window === 'undefined') return;
+      this.relogioIa = setInterval(() => {
+        const resta = this.segundosIa() - 1;
+        this.segundosIa.set(Math.max(0, resta));
+        if (resta <= 0) this.pararRelogioIa();
+      }, 1000);
+    },
+    { allowSignalWrites: true },
   );
 
   private readonly esqueleto = linhasJson({ lembrete: EXEMPLO_RASCUNHO, proximasExecucoes: [] });
@@ -844,6 +873,26 @@ Detalhes...") e é um defeito conhecido do backend. Mostrar
 
   ngOnDestroy(): void {
     if (this.timerSaida) clearTimeout(this.timerSaida);
+    this.pararRelogioIa();
+  }
+
+  private pararRelogioIa(): void {
+    if (this.relogioIa) clearInterval(this.relogioIa);
+    this.relogioIa = null;
+  }
+
+  /** Reenvia a mesma frase, que continua no campo depois do 503. */
+  protected tentarIaDeNovo(): void {
+    if (this.segundosIa() > 0) return;
+    if (!this.draft().trim()) this.draft.set(this.fraseEnviada() ?? '');
+    void this.enviarFrase();
+  }
+
+  /** Sem IA: o formulário abre com a frase como título, para não perder o que foi escrito. */
+  protected criarSemIa(): void {
+    const frase = (this.fraseEnviada() ?? this.draft()).trim();
+    this.abrirFormulario();
+    if (frase) this.fTitulo.set(frase.length > 80 ? frase.slice(0, 79).trimEnd() + '…' : frase);
   }
 
   private selecionarPrimeiro(): void {
